@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>個人財富管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117;--surface:#161b27;--s2:#1e2535;--s3:#252d40;
+  --border:#2a3347;--accent:#4f9cf9;--green:#38d9a9;--red:#f06b6b;
+  --warn:#f5a623;--text:#e8edf5;--t2:#8a9bb5;--t3:#5a6882;
+  --mono:'DM Mono',monospace;--sans:'Noto Sans TC',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:215px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;overflow-y:auto}
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo h1{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.05em}
+.logo p{font-size:11px;color:var(--t3);margin-top:3px}
+.nav{flex:1;padding:8px 0}
+.ns{padding:8px 18px 4px;font-size:10px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 18px;cursor:pointer;color:var(--t2);font-size:13px;transition:all .15s;border-left:2px solid transparent}
+.ni:hover{color:var(--text);background:var(--s2)}
+.ni.active{color:var(--accent);background:rgba(79,156,249,.08);border-left-color:var(--accent)}
+.ni .ic{font-size:14px;width:16px;text-align:center}
+.sf{padding:14px 16px;border-top:1px solid var(--border);display:flex;gap:7px;flex-direction:column}
+.sbtn{padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--t2);cursor:pointer;font-size:12px;font-family:var(--sans);transition:all .15s;text-align:center}
+.sbtn:hover{border-color:var(--accent);color:var(--accent)}
+.main{margin-left:215px;flex:1;padding:24px 28px;min-width:0}
+.page{display:none}.page.active{display:block}
+
+/* Month selector */
+.mbar{display:flex;align-items:center;gap:8px;margin-bottom:22px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap}
+.mbar-label{font-size:11px;color:var(--t3);white-space:nowrap}
+.mbar-tabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.mt{padding:4px 11px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--t3);cursor:pointer;font-size:12px;font-family:var(--mono);transition:all .15s;white-space:nowrap}
+.mt:hover{border-color:var(--accent);color:var(--accent)}
+.mt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.mbar-add{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);background:transparent;color:var(--t3);cursor:pointer;font-size:12px;font-family:var(--sans);transition:all .15s}
+.mbar-add:hover{border-color:var(--accent);color:var(--accent)}
+.mbar-del{padding:4px 10px;border-radius:6px;border:1px solid rgba(240,107,107,.35);background:transparent;color:var(--red);cursor:pointer;font-size:12px;font-family:var(--sans);opacity:.7;transition:all .15s}
+.mbar-del:hover{opacity:1}
+
+/* Page header */
+.ph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.pt{font-size:20px;font-weight:700}.ps{font-size:12px;color:var(--t3);margin-top:3px}
+
+/* Summary cards */
+.scg{display:grid;gap:13px;margin-bottom:20px}
+.scg-4{grid-template-columns:repeat(4,1fr)}
+.scg-3{grid-template-columns:repeat(3,1fr)}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.sc .lbl{font-size:10px;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px}
+.sc .val{font-size:19px;font-weight:700;font-family:var(--mono)}
+.g{color:var(--green)}.r{color:var(--red)}.a{color:var(--accent)}
+
+/* Sections */
+.sec{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.st{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.ci{transition:transform .2s;font-size:10px;color:var(--t3)}
+.sec.col .ci{transform:rotate(-90deg)}
+.sec.col .sb{display:none}
+.stot{font-family:var(--mono);font-size:13px;font-weight:600}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{padding:8px 12px;text-align:left;font-size:10px;color:var(--t3);font-weight:500;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--s2);white-space:nowrap}
+.tbl td{padding:7px 12px;border-bottom:1px solid rgba(42,51,71,.4);font-size:13px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.012)}
+.mono{font-family:var(--mono)}.mt2{color:var(--t2)}.mt3{color:var(--t3)}
+.tag{font-size:11px;background:var(--s3);color:var(--t2);padding:2px 6px;border-radius:4px}
+
+/* Editable inputs in cells */
+.ec{background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;width:100%;min-width:60px}
+.ec:focus{border-bottom:1px solid var(--accent);color:var(--accent)}
+.ec-s{font-family:var(--sans)}
+.ec.r{color:var(--red)}.ec.g{color:var(--green)}
+
+/* Delete button */
+.ib{background:none;border:none;cursor:pointer;font-size:13px;color:var(--t3);padding:2px 5px;border-radius:3px;transition:all .15s;font-family:var(--sans)}
+.ib:hover{color:var(--red);background:rgba(240,107,107,.1)}
+
+.add-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:transparent;border:1px dashed var(--border);color:var(--t3);border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--sans);margin:9px 12px;transition:all .15s}
+.add-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Chart area */
+.chrow{display:grid;grid-template-columns:300px 1fr;gap:14px;margin-bottom:18px}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.ct{font-size:12px;font-weight:600;margin-bottom:10px;color:var(--t2)}
+.pl{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.pli{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)}
+.pld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.plv{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--t3)}
+
+/* CF */
+.cfgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cfs{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cfh{padding:11px 14px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cfh.exp{color:var(--red)}.cfh.inc{color:var(--green)}
+.cft{font-family:var(--mono);font-size:12px}
+
+/* Alert */
+.al{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.al.ok{background:rgba(56,217,169,.07);border:1px solid rgba(56,217,169,.22);color:var(--green)}
+.al.ng{background:rgba(240,107,107,.07);border:1px solid rgba(240,107,107,.22);color:var(--red)}
+
+/* Modal */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.mo.open{display:flex}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;width:380px;max-width:95vw;max-height:88vh;overflow-y:auto}
+.md h2{font-size:15px;font-weight:700;margin-bottom:16px}
+.fg{margin-bottom:11px}
+.fg label{display:block;font-size:11px;color:var(--t2);margin-bottom:4px}
+.fg input,.fg select{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:13px;font-family:var(--sans);outline:none}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg input[type=number]{font-family:var(--mono)}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn{padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--s2);color:var(--t2);cursor:pointer;font-size:12px;font-family:var(--sans);transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-p:hover{background:#3a8ee8;border-color:#3a8ee8;color:#fff}
+
+/* History */
+.ht-wrap{overflow-x:auto}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:4px}
+
+/* Sync status bar */
+.sync-bar{position:fixed;top:0;left:0;right:0;height:3px;z-index:999;background:transparent}
+.sync-bar.syncing{background:var(--accent);animation:syncPulse 1s ease-in-out infinite}
+.sync-bar.saved{background:var(--green);animation:fadeBar 1.2s forwards}
+.sync-bar.error{background:var(--red)}
+@keyframes syncPulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes fadeBar{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
+.sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:6px;vertical-align:middle;background:var(--t3)}
+.sync-dot.online{background:var(--green);box-shadow:0 0 5px rgba(56,217,169,.5)}
+.sync-dot.syncing{background:var(--warn);animation:pulse .8s infinite}
+.sync-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.loading-overlay{position:fixed;inset:0;background:rgba(15,17,23,.92);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-overlay.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--t2);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- Sync bar -->
+<div class="sync-bar" id="sync-bar"></div>
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">正在從雲端載入資料…</div>
+</div>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><h1>💼 財富追蹤系統<span class="sync-dot" id="sync-dot"></span></h1><p id="sync-label">連線中…</p></div>
+  <nav class="nav">
+    <div class="ns">總覽</div>
+    <div class="ni active" data-page="dashboard"><span class="ic">📊</span>資產負債表</div>
+    <div class="ns">資產</div>
+    <div class="ni" data-page="savings"><span class="ic">🏦</span>存款與現金</div>
+    <div class="ni" data-page="investments"><span class="ic">📈</span>投資組合</div>
+    <div class="ni" data-page="property"><span class="ic">🏠</span>動產與不動產</div>
+    <div class="ns">負債</div>
+    <div class="ni" data-page="liabilities"><span class="ic">💳</span>負債管理</div>
+    <div class="ns">現金流</div>
+    <div class="ni" data-page="cashflow"><span class="ic">💰</span>現金流量表</div>
+    <div class="ns">歷史</div>
+    <div class="ni" data-page="history"><span class="ic">📅</span>月度趨勢</div>
+  </nav>
+  <div class="sf">
+    <button class="sbtn" onclick="exportData()">⬇ 匯出資料 (.json)</button>
+    <label class="sbtn" style="cursor:pointer">⬆ 匯入資料<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+  </div>
+</aside>
+
+<main class="main">
+
+<div id="page-dashboard" class="page active">
+  <div class="ph"><div><div class="pt">資產負債表</div><div class="ps" id="db-sub"></div></div></div>
+  <div id="db-mbar"></div>
+  <div class="scg scg-4" id="db-cards"></div>
+  <div class="chrow">
+    <div class="cc"><div class="ct">資產分配</div><canvas id="pieC" width="260" height="160"></canvas><div class="pl" id="pie-leg"></div></div>
+    <div class="cc"><div class="ct">淨值趨勢（所有月份）</div><canvas id="trendC" width="500" height="200"></canvas></div>
+  </div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">📋 資產負債明細 <span class="ci">▼</span></div></div><div class="sb"><table class="tbl" id="db-tbl"></table></div></div>
+</div>
+
+<div id="page-savings" class="page">
+  <div class="ph"><div><div class="pt">存款與現金</div><div class="ps">活期、定期、外幣現金、外幣存款</div></div></div>
+  <div id="sav-mbar"></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🏦 活期存款 <span class="ci">▼</span></div><div class="stot g" id="sav-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>銀行</th><th>利率</th><th>說明</th><th>金額(台幣)</th><th></th></tr></thead><tbody id="sav-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('sav')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🔒 定期存款 <span class="ci">▼</span></div><div class="stot g" id="fix-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>銀行</th><th>利率</th><th>期限(月)</th><th>機動/固定</th><th>到期日</th><th>說明</th><th>金額(台幣)</th><th></th></tr></thead><tbody id="fix-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('fix')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">💵 外幣現金 <span class="ci">▼</span></div><div class="stot g" id="fca-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>位置</th><th>幣別</th><th>外幣金額</th><th>成本匯率</th><th>台幣原始</th><th>目前匯率</th><th>說明</th><th>台幣現值</th><th></th></tr></thead><tbody id="fca-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('fca')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🌐 外幣存款 <span class="ci">▼</span></div><div class="stot g" id="fde-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>銀行</th><th>幣別</th><th>外幣金額</th><th>成本匯率</th><th>台幣原始</th><th>目前匯率</th><th>說明</th><th>台幣現值</th><th></th></tr></thead><tbody id="fde-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('fde')">＋ 新增</button></div></div>
+</div>
+
+<div id="page-investments" class="page">
+  <div class="ph"><div><div class="pt">投資組合</div><div class="ps">海外股票、台股/ETF、其他資產</div></div></div>
+  <div id="inv-mbar"></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🌎 海外股票 <span class="ci">▼</span></div><div class="stot g" id="ovs-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>商品</th><th>股數</th><th>成本(USD/股)</th><th>成本匯率</th><th>台幣原始</th><th>交易成本</th><th>現值(USD/股)</th><th>目前匯率</th><th>說明</th><th>帳面現值</th><th></th></tr></thead><tbody id="ovs-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('ovs')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">📊 股票/ETF（台）<span class="ci">▼</span></div><div class="stot g" id="tws-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>名稱</th><th>股數</th><th>成本/股</th><th>成本總額</th><th>現值/股</th><th>交易成本</th><th>說明</th><th>帳面現值</th><th></th></tr></thead><tbody id="tws-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('tws')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🗂 其他資產 <span class="ci">▼</span></div><div class="stot g" id="oth-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>名稱</th><th>持有數</th><th>成本/單位</th><th>成本總額</th><th>現值/單位</th><th>說明</th><th>帳面現值</th><th></th></tr></thead><tbody id="oth-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('oth')">＋ 新增</button></div></div>
+</div>
+
+<div id="page-property" class="page">
+  <div class="ph"><div><div class="pt">動產與不動產</div><div class="ps">車輛、房產等有形資產</div></div></div>
+  <div id="prop-mbar"></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🚗 動產 <span class="ci">▼</span></div><div class="stot g" id="mov-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>名稱</th><th>數量</th><th>成本/單位</th><th>成本總額</th><th>估值/單位</th><th>取得日</th><th>說明</th><th>帳面估值</th><th></th></tr></thead><tbody id="mov-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('mov')">＋ 新增</button></div></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">🏠 不動產 <span class="ci">▼</span></div><div class="stot g" id="imm-tot"></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>名稱</th><th>坪數</th><th>成本/坪</th><th>成本總額</th><th>估值/坪</th><th>取得日</th><th>說明</th><th>帳面估值</th><th></th></tr></thead><tbody id="imm-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('imm')">＋ 新增</button></div></div>
+</div>
+
+<div id="page-liabilities" class="page">
+  <div class="ph"><div><div class="pt">負債管理</div><div class="ps">貸款等負債記錄</div></div></div>
+  <div id="lia-mbar"></div>
+  <div class="scg scg-3" id="lia-cards"></div>
+  <div class="sec"><div class="sh" onclick="tSec(this)"><div class="st">💳 負債明細 <span class="ci">▼</span></div></div>
+    <div class="sb"><table class="tbl"><thead><tr><th>#</th><th>債務人</th><th>利息</th><th>機動/固定</th><th>原始借金</th><th>剩餘借金</th><th>借款日</th><th>借款期(月)</th><th>說明</th><th>剩餘負債</th><th></th></tr></thead><tbody id="lia-tbody"></tbody></table>
+    <button class="add-btn" onclick="openAdd('lia')">＋ 新增</button></div></div>
+</div>
+
+<div id="page-cashflow" class="page">
+  <div class="ph"><div><div class="pt">現金流量表</div><div class="ps">每月收支記錄</div></div></div>
+  <div id="cf-mbar"></div>
+  <div id="cf-al"></div>
+  <div class="scg scg-3" id="cf-cards"></div>
+  <div class="cfgrid">
+    <div class="cfs">
+      <div class="cfh exp">💸 支出（應付帳款）<span class="cft" id="cf-exp-tot"></span></div>
+      <table class="tbl"><thead><tr><th>類型</th><th>子類型</th><th>說明</th><th>金額</th><th></th></tr></thead><tbody id="cf-exp-tbody"></tbody></table>
+      <button class="add-btn" onclick="openAdd('cfe')">＋ 新增支出</button>
+    </div>
+    <div class="cfs">
+      <div class="cfh inc">💵 收入（應收帳款）<span class="cft" id="cf-inc-tot"></span></div>
+      <table class="tbl"><thead><tr><th>類型</th><th>子類型</th><th>說明</th><th>金額</th><th></th></tr></thead><tbody id="cf-inc-tbody"></tbody></table>
+      <button class="add-btn" onclick="openAdd('cfi')">＋ 新增收入</button>
+    </div>
+  </div>
+</div>
+
+<div id="page-history" class="page">
+  <div class="ph"><div><div class="pt">月度趨勢</div><div class="ps">所有月份資產負債彙總對比</div></div></div>
+  <div class="ht-wrap"><table class="tbl" id="hist-tbl" style="min-width:600px"></table></div>
+</div>
+
+</main>
+</div>
+
+<!-- Add Modal -->
+<div class="mo" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="md">
+    <h2 id="m-title">新增</h2>
+    <div id="m-body"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-p" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAn0B7IEzgNSz4d7WMZIY_NBlakBd2_18",
+  authDomain: "my-finance-baafc.firebaseapp.com",
+  databaseURL: "https://my-finance-baafc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "my-finance-baafc",
+  storageBucket: "my-finance-baafc.firebasestorage.app",
+  messagingSenderId: "104973497219496",
+  appId: "1:104973497219496:web:621724199b3ea934f8bbd0"
+};
+
+const _fbApp = initializeApp(firebaseConfig);
+const _fbDb = getDatabase(_fbApp);
+const _FB_PATH = 'financeData';
+let _saveTimer = null;
+let _isRemote = false;
+let _firstSnap = true;
+
+function _setSyncStatus(status, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  const bar = document.getElementById('sync-bar');
+  if(dot) dot.className = 'sync-dot ' + status;
+  if(lbl) lbl.textContent = label;
+  if(bar) { bar.className = 'sync-bar ' + status; if(status==='saved') setTimeout(()=>bar.className='sync-bar',1200); }
+}
+
+async function _saveNow() {
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+  _setSyncStatus('syncing', '同步中…');
+  try {
+    await set(ref(_fbDb, _FB_PATH), { v:3, curMonth, DB });
+    _setSyncStatus('saved', '已同步 ✓');
+    setTimeout(()=>_setSyncStatus('online','雲端已連線'), 1500);
+  } catch(e) {
+    _setSyncStatus('error', '同步失敗 ✗');
+    console.error(e);
+  }
+}
+
+function cloudSave() {
+  if (_isRemote) return;
+  clearTimeout(_saveTimer);
+  _setSyncStatus('syncing', '同步中…');
+  _saveTimer = setTimeout(_saveNow, 800);
+}
+
+onValue(ref(_fbDb, _FB_PATH), (snap) => {
+  if (_firstSnap) { _firstSnap = false; return; }
+  if (!snap.exists() || _saveTimer) return;
+  const d = snap.val();
+  _isRemote = true;
+  if (d.DB) DB = d.DB;
+  if (d.curMonth) curMonth = d.curMonth;
+  renderAll();
+  _isRemote = false;
+  _setSyncStatus('online', '已同步其他裝置 ↓');
+  setTimeout(()=>_setSyncStatus('online','雲端已連線'), 2000);
+});
+
+async function _loadFromCloud() {
+  try {
+    const snap = await get(ref(_fbDb, _FB_PATH));
+    if (snap.exists()) {
+      const d = snap.val();
+      if (d.DB) DB = d.DB;
+      if (d.curMonth) curMonth = d.curMonth;
+      _setSyncStatus('online', '雲端已連線');
+    } else {
+      await set(ref(_fbDb, _FB_PATH), { v:3, curMonth, DB });
+      _setSyncStatus('online', '初始資料已上傳');
+    }
+  } catch(e) {
+    _setSyncStatus('error', '載入失敗，使用本地資料');
+  }
+  document.getElementById('loading-overlay').classList.add('hidden');
+  renderAll();
+}
+
+
+// ═══════════════════════════════ DATA ═══════════════════════════════
+function emptyMonth() {
+  return {sav:[],fix:[],fca:[],fde:[],ovs:[],tws:[],oth:[],mov:[],imm:[],lia:[],cfe:[],cfi:[]};
+}
+
+let DB = { months: {} };
+let curMonth = '2026-04';
+let curPage = 'dashboard';
+let modalType = null;
+
+// Seed data
+DB.months['2026-03'] = {
+  sav:[
+    {bank:'永豐銀行',rate:'1.50% 高利活存',note:'零用金',amount:254742},
+    {bank:'樂天銀行',rate:'1.50% 高利活存',note:'中轉站',amount:15666},
+    {bank:'連線銀行',rate:'1.50% 高利活存',note:'中轉站',amount:722175},
+    {bank:'國泰世華',rate:'0.08%',note:'日常生活',amount:42161},
+    {bank:'台新銀行',rate:'1.80% 高利活存',note:'個人進修金',amount:10793},
+  ],
+  fix:[
+    {bank:'國泰世華',rate:'1.69%',months:12,type:'機動',maturity:'2026/6/1',note:'開店備用金',amount:1600000},
+    {bank:'國泰世華',rate:'1.69%',months:12,type:'機動',maturity:'2026/6/1',note:'緊急預備金',amount:0},
+    {bank:'國泰世華',rate:'1.69%',months:12,type:'機動',maturity:'2026/6/1',note:'預收張款預備金',amount:400000},
+  ],
+  fca:[{location:'抽屜',currency:'美金',foreignAmt:337,costRate:29,twdOrig:9773,curRate:31.98,note:'',twdVal:10777}],
+  fde:[],
+  ovs:[
+    {product:'QQQ',shares:1.39762,costUSD:505.14,costRate:32.91,twdOrig:23234,txCost:200,curUSD:585.18,curRate:31.98,note:'',val:25955},
+    {product:'VTI',shares:7.0101,costUSD:280.44,costRate:32.99,twdOrig:64856,txCost:200,curUSD:324.24,curRate:31.98,note:'',val:72489},
+    {product:'TSLA',shares:1.36238,costUSD:324.60,costRate:33,twdOrig:14603,txCost:100,curUSD:342.17,curRate:31.98,note:'',val:14480},
+    {product:'VOO',shares:2,costUSD:616.26,costRate:30.54,twdOrig:37641,txCost:0,curUSD:603.74,curRate:31.98,note:'',val:38615},
+    {product:'GOOG',shares:1,costUSD:317.49,costRate:30.54,twdOrig:9696,txCost:0,curUSD:301.08,curRate:31.98,note:'',val:9629},
+  ],
+  tws:[
+    {name:'富邦50',shares:21439,costPer:94.52,costTot:2026414,curPer:174.80,txCost:10000,note:'',val:3737537},
+    {name:'元大50',shares:18331,costPer:59.66,costTot:1093627,curPer:75.30,txCost:2000,note:'',val:1379324},
+    {name:'台積電',shares:700,costPer:1510.23,costTot:1057161,curPer:1860,txCost:7000,note:'',val:1295000},
+    {name:'鴻海',shares:1000,costPer:238.50,costTot:238500,curPer:192,txCost:340,note:'',val:191860},
+    {name:'緯穎',shares:5,costPer:4301,costTot:21505,curPer:3395,txCost:130,note:'',val:16845},
+    {name:'富樺',shares:4183,costPer:88.70,costTot:371032,curPer:102,txCost:2000,note:'',val:424666},
+    {name:'動鑫',shares:300,costPer:870.24,costTot:261072,curPer:870.24,txCost:1500,note:'',val:259572},
+  ],
+  oth:[],
+  mov:[{name:'Tesla Model 3',qty:1,costPer:1786590,costTot:1786590,curPer:1400000,acquired:'2025/7/19',note:'電動車',val:1400000}],
+  imm:[{name:'住家',area:25,costPer:0,costTot:0,curPer:700000,acquired:'',note:'',val:17500000}],
+  lia:[
+    {creditor:'學生預收賬款',rate:'x%',type:'機動',orig:768600,remain:391600,startDate:'',months:0,note:'',balance:391600},
+    {creditor:'車貸',rate:'2.13%',type:'固定',orig:1500000,remain:1325000,startDate:'2025/7/4',months:60,note:'8/60',balance:1300000},
+  ],
+  cfe:[
+    {cat:'電信費',sub:'週期',note:'手機與光世代',amt:2834},
+    {cat:'水電瓦斯',sub:'固定',note:'',amt:2500},
+    {cat:'車貸',sub:'固定',note:'2.13% 車貸',amt:25000},
+    {cat:'停車費',sub:'固定',note:'停車費',amt:10000},
+    {cat:'訂閱費用',sub:'週期',note:'Spotify、網站、Oura、YT',amt:2500},
+    {cat:'娛樂費',sub:'旅遊與休閒',note:'打球',amt:8400},
+    {cat:'娛樂費',sub:'固定',note:'生日吃飯',amt:10000},
+    {cat:'生活費',sub:'固定',note:'食衣住行',amt:25000},
+  ],
+  cfi:[
+    {cat:'房租收入',sub:'固定',note:'',amt:20000},
+    {cat:'教學收入',sub:'固定',note:'',amt:176000},
+  ]
+};
+
+DB.months['2026-04'] = JSON.parse(JSON.stringify(DB.months['2026-03']));
+DB.months['2026-04'].cfe = [
+  {cat:'電信費',sub:'週期',note:'手機與光世代',amt:2834},
+  {cat:'水電瓦斯',sub:'固定',note:'',amt:2500},
+  {cat:'車貸',sub:'固定',note:'2.13% 車貸',amt:25000},
+  {cat:'訂閱費用',sub:'週期',note:'Spotify、網站、Oura、YT',amt:1300},
+  {cat:'娛樂費',sub:'旅遊與休閒',note:'打球',amt:8400},
+  {cat:'生活費',sub:'固定',note:'食衣住行',amt:30000},
+  {cat:'保險費',sub:'週期',note:'機車險（$3,102）、保單號 A126841904-03',amt:9373},
+  {cat:'繳稅',sub:'週期',note:'房屋稅',amt:1700},
+];
+DB.months['2026-04'].cfi = [
+  {cat:'房租收入',sub:'固定',note:'',amt:20000},
+  {cat:'教學收入',sub:'固定',note:'',amt:0},
+  {cat:'保險祝壽金',sub:'固定',note:'',amt:40000},
+];
+
+// ═══════════════════════════════ UTILS ═══════════════════════════════
+const fmt = n => n==null?'-':(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString('en');
+const num = v => parseFloat(v)||0;
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const getM = m => { if(!DB.months[m])DB.months[m]=emptyMonth(); return DB.months[m]; };
+const sortedMonths = () => Object.keys(DB.months).sort();
+
+function computeTotals(m) {
+  const d = getM(m);
+  const savT=d.sav.reduce((s,r)=>s+num(r.amount),0);
+  const fixT=d.fix.reduce((s,r)=>s+num(r.amount),0);
+  const fcaT=d.fca.reduce((s,r)=>s+num(r.twdVal),0);
+  const fdeT=d.fde.reduce((s,r)=>s+num(r.twdVal),0);
+  const ovsT=d.ovs.reduce((s,r)=>s+num(r.val),0);
+  const twsT=d.tws.reduce((s,r)=>s+num(r.val),0);
+  const othT=d.oth.reduce((s,r)=>s+num(r.val),0);
+  const movT=d.mov.reduce((s,r)=>s+num(r.val),0);
+  const immT=d.imm.reduce((s,r)=>s+num(r.val),0);
+  const liaT=d.lia.reduce((s,r)=>s+num(r.balance),0);
+  const total=savT+fixT+fcaT+fdeT+ovsT+twsT+othT+movT+immT;
+  // 淨值定義：
+  // net        = 總資產 - 負債（含動產、不動產）
+  // netNoImm   = 扣除不動產
+  // netNoMov   = 扣除動產（車輛）
+  // netCore    = 扣除動產 + 不動產（金融資產淨值）
+  const net=total-liaT;
+  const netNoImm=total-liaT-immT;
+  const netNoMov=total-liaT-movT;
+  const netCore=total-liaT-movT-immT;
+  return {savT,fixT,fcaT,fdeT,ovsT,twsT,othT,movT,immT,liaT,total,net,netNoImm,netNoMov,netCore};
+}
+
+// ═══════════════════════════════ MONTH BAR ═══════════════════════════════
+function mbarHTML() {
+  const ms = sortedMonths();
+  return `<div class="mbar">
+    <span class="mbar-label">月份：</span>
+    <div class="mbar-tabs">${ms.map(m=>`<div class="mt${m===curMonth?' active':''}" onclick="switchMonth('${m}')">${m}</div>`).join('')}</div>
+    <button class="mbar-add" onclick="addMonth()">＋ 新增月份</button>
+    ${ms.length>1?`<button class="mbar-del" onclick="deleteMonth()">✕ 刪除 ${curMonth}</button>`:''}
+  </div>`;
+}
+
+function switchMonth(m) { curMonth=m; renderAll(); cloudSave(); }
+
+function addMonth() {
+  const m = prompt('新增月份（格式：2026-05）：');
+  if (!m) return;
+  if (!/^\d{4}-\d{2}$/.test(m)) { alert('格式錯誤，請輸入如 2026-05'); return; }
+  if (!DB.months[m]) {
+    const ms = sortedMonths();
+    if (ms.length > 0) {
+      DB.months[m] = JSON.parse(JSON.stringify(DB.months[ms[ms.length-1]]));
+      DB.months[m].cfe = [];
+      DB.months[m].cfi = [];
+    } else {
+      DB.months[m] = emptyMonth();
+    }
+  }
+  curMonth = m;
+  renderAll();
+  cloudSave();
+}
+
+function deleteMonth() {
+  if (sortedMonths().length <= 1) { alert('至少保留一個月份'); return; }
+  if (!confirm(`確認刪除 ${curMonth} 的所有資料？無法復原。`)) return;
+  delete DB.months[curMonth];
+  curMonth = sortedMonths().slice(-1)[0];
+  renderAll();
+  cloudSave();
+}
+
+// ═══════════════════════════════ RENDER ALL ═══════════════════════════════
+function renderAll() {
+  ['db','sav','inv','prop','lia','cf'].forEach(p => {
+    const el = document.getElementById(p+'-mbar');
+    if (el) el.innerHTML = mbarHTML();
+  });
+  if (curPage==='dashboard') renderDashboard();
+  else if (curPage==='savings') renderSavings();
+  else if (curPage==='investments') renderInvestments();
+  else if (curPage==='property') renderProperty();
+  else if (curPage==='liabilities') renderLiabilities();
+  else if (curPage==='cashflow') renderCashflow();
+  else if (curPage==='history') renderHistory();
+}
+
+// ═══════════════════════════════ DASHBOARD ═══════════════════════════════
+function renderDashboard() {
+  document.getElementById('db-sub').textContent = curMonth + ' 月份數據';
+  const t = computeTotals(curMonth);
+  document.getElementById('db-cards').innerHTML = [
+    {l:'總資產',v:fmt(t.total),c:'a'},
+    {l:'總負債',v:fmt(t.liaT),c:'r'},
+    {l:'總淨值',sub:'含車輛＋不動產',v:fmt(t.net),c:t.net>=0?'g':'r'},
+    {l:'淨值',sub:'扣除車輛＋不動產',v:fmt(t.netCore),c:t.netCore>=0?'g':'r'},
+  ].map(c=>`<div class="sc"><div class="lbl">${c.l}</div><div class="val ${c.c}">${c.v}</div>${c.sub?`<div style="font-size:10px;color:var(--t3);margin-top:4px">${c.sub}</div>`:''}</div>`).join('');
+  drawPie(t);
+  drawTrend();
+  renderBSTable(t);
+}
+
+function drawPie(t) {
+  const cv = document.getElementById('pieC');
+  const ctx = cv.getContext('2d');
+  cv.width=260; cv.height=160; ctx.clearRect(0,0,260,160);
+  const cats = [
+    {n:'活期存款',v:t.savT,c:'#4f9cf9'},{n:'定期存款',v:t.fixT,c:'#38d9a9'},
+    {n:'台股ETF',v:t.twsT,c:'#f5a623'},{n:'海外股票',v:t.ovsT,c:'#9b8afb'},
+    {n:'不動產',v:t.immT,c:'#f06b6b'},{n:'動產',v:t.movT,c:'#5de0e6'},
+    {n:'外幣',v:t.fcaT+t.fdeT,c:'#ffd60a'},{n:'其他',v:t.othT,c:'#a8b5c8'},
+  ].filter(c=>c.v>0);
+  const tot = cats.reduce((s,c)=>s+c.v,0);
+  if (!tot) return;
+  let a = -Math.PI/2;
+  const cx=80,cy=80,r=68;
+  cats.forEach(cat => {
+    const sl=(cat.v/tot)*2*Math.PI;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+sl);ctx.closePath();
+    ctx.fillStyle=cat.c;ctx.fill();a+=sl;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,38,0,2*Math.PI);ctx.fillStyle='#161b27';ctx.fill();
+  ctx.fillStyle='#8a9bb5';ctx.font='10px Noto Sans TC';ctx.textAlign='center';
+  ctx.fillText(fmt(tot),cx,cy+3);
+  document.getElementById('pie-leg').innerHTML=cats.map(c=>`<div class="pli"><div class="pld" style="background:${c.c}"></div><span>${c.n}</span><span class="plv">${fmt(c.v)}</span></div>`).join('');
+}
+
+function drawTrend() {
+  const cv = document.getElementById('trendC');
+  const ctx = cv.getContext('2d');
+  cv.width=500; cv.height=200; ctx.clearRect(0,0,500,200);
+  const ms = sortedMonths();
+  if (ms.length < 2) { ctx.fillStyle='#5a6882';ctx.font='13px Noto Sans TC';ctx.fillText('資料不足，請新增更多月份',60,100);return; }
+  const vals = ms.map(m=>computeTotals(m).netCore);
+  const minV=Math.min(...vals),maxV=Math.max(...vals),range=maxV-minV||1;
+  const pad={l:12,r:12,t:14,b:28},W=500-pad.l-pad.r,H=200-pad.t-pad.b;
+  const pts = vals.map((v,i)=>({x:pad.l+(i/(ms.length-1))*W,y:pad.t+H-((v-minV)/range)*H}));
+  const g=ctx.createLinearGradient(0,pad.t,0,pad.t+H);
+  g.addColorStop(0,'rgba(79,156,249,0.28)');g.addColorStop(1,'rgba(79,156,249,0)');
+  ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+H);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x,pad.t+H);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle='#4f9cf9';ctx.lineWidth=2;
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+  pts.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*Math.PI);
+    ctx.fillStyle=ms[i]===curMonth?'#f5a623':'#4f9cf9';ctx.fill();
+    ctx.fillStyle='#5a6882';ctx.font='9px DM Mono';ctx.textAlign='center';
+    ctx.fillText(ms[i].slice(2),p.x,pad.t+H+14);
+  });
+}
+
+function renderBSTable(t) {
+  const finTotal = t.savT+t.fixT+t.fcaT+t.fdeT+t.ovsT+t.twsT+t.othT;
+  const finRows = [
+    {n:'活期存款',v:t.savT},{n:'定期存款',v:t.fixT},{n:'外幣現金',v:t.fcaT},
+    {n:'外幣存款',v:t.fdeT},{n:'海外股票',v:t.ovsT},{n:'台股/ETF',v:t.twsT},
+    {n:'其他資產',v:t.othT},
+  ];
+  const sep = `<tr style="height:1px;background:var(--border)"><td colspan="3" style="padding:0"></td></tr>`;
+  document.getElementById('db-tbl').innerHTML=`
+    <thead><tr><th>項目</th><th>金額（台幣）</th><th>佔金融資產</th></tr></thead>
+    <tbody>
+    ${finRows.map(r=>`<tr>
+      <td>${r.n}</td>
+      <td class="mono ${r.v>0?'g':''}">${fmt(r.v)}</td>
+      <td class="mono mt3">${finTotal?((r.v/finTotal)*100).toFixed(1)+'%':'-'}</td>
+    </tr>`).join('')}
+    <tr style="font-weight:700;background:rgba(255,255,255,.03)">
+      <td>金融資產小計</td><td class="mono a">${fmt(finTotal)}</td><td class="mono mt3">100%</td>
+    </tr>
+    ${sep}
+    <tr style="background:rgba(255,255,255,.015)">
+      <td class="mt2">動產（車輛）</td><td class="mono mt2">${fmt(t.movT)}</td><td class="mono mt3">—</td>
+    </tr>
+    <tr style="background:rgba(255,255,255,.015)">
+      <td class="mt2">不動產</td><td class="mono mt2">${fmt(t.immT)}</td><td class="mono mt3">—</td>
+    </tr>
+    ${sep}
+    <tr><td class="mt3">總負債</td><td class="mono r">${fmt(-t.liaT)}</td><td></td></tr>
+    <tr style="height:6px"><td colspan="3"></td></tr>
+    <tr>
+      <td class="mt2">總淨值</td>
+      <td class="mono ${t.net>=0?'g':'r'}">${fmt(t.net)}</td>
+      <td style="font-size:10px;color:var(--t3)">含車輛＋不動產</td>
+    </tr>
+    <tr style="background:rgba(56,217,169,.05)">
+      <td style="font-weight:700">淨值（扣車輛＋不動產）</td>
+      <td class="mono ${t.netCore>=0?'g':'r'}" style="font-weight:700;font-size:15px">${fmt(t.netCore)}</td>
+      <td></td>
+    </tr>
+    </tbody>`;
+}
+
+// ═══════════════════════════════ SAVINGS ═══════════════════════════════
+function renderSavings() {
+  const d = getM(curMonth);
+  const savT=d.sav.reduce((s,r)=>s+num(r.amount),0);
+  document.getElementById('sav-tot').textContent=fmt(savT);
+  document.getElementById('sav-tbody').innerHTML=d.sav.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><input class="ec ec-s" value="${esc(r.bank)}" onchange="upd('sav',${i},'bank',this.value)"></td>
+    <td><input class="ec" value="${esc(r.rate)}" onchange="upd('sav',${i},'rate',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('sav',${i},'note',this.value)"></td>
+    <td><input class="ec g" type="number" value="${r.amount}" onchange="upd('sav',${i},'amount',+this.value);reSav()"></td>
+    <td><button class="ib" onclick="del('sav',${i});reSav()">✕</button></td>
+  </tr>`).join('');
+
+  const fixT=d.fix.reduce((s,r)=>s+num(r.amount),0);
+  document.getElementById('fix-tot').textContent=fmt(fixT);
+  document.getElementById('fix-tbody').innerHTML=d.fix.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><input class="ec ec-s" value="${esc(r.bank)}" onchange="upd('fix',${i},'bank',this.value)"></td>
+    <td><input class="ec" value="${esc(r.rate)}" onchange="upd('fix',${i},'rate',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.months}" onchange="upd('fix',${i},'months',+this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.type)}" onchange="upd('fix',${i},'type',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.maturity)}" onchange="upd('fix',${i},'maturity',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('fix',${i},'note',this.value)"></td>
+    <td><input class="ec g" type="number" value="${r.amount}" onchange="upd('fix',${i},'amount',+this.value);reSav()"></td>
+    <td><button class="ib" onclick="del('fix',${i});reSav()">✕</button></td>
+  </tr>`).join('');
+
+  const fcaT=d.fca.reduce((s,r)=>s+num(r.twdVal),0);
+  document.getElementById('fca-tot').textContent=fmt(fcaT);
+  document.getElementById('fca-tbody').innerHTML=d.fca.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><input class="ec ec-s" value="${esc(r.location)}" onchange="upd('fca',${i},'location',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.currency)}" onchange="upd('fca',${i},'currency',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.foreignAmt}" onchange="upd('fca',${i},'foreignAmt',+this.value);calcFx('fca',${i})"></td>
+    <td><input class="ec" type="number" value="${r.costRate}" onchange="upd('fca',${i},'costRate',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.twdOrig)}</td>
+    <td><input class="ec" type="number" value="${r.curRate}" onchange="upd('fca',${i},'curRate',+this.value);calcFx('fca',${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('fca',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.twdVal)}</td>
+    <td><button class="ib" onclick="del('fca',${i});reSav()">✕</button></td>
+  </tr>`).join('');
+
+  const fdeT=d.fde.reduce((s,r)=>s+num(r.twdVal),0);
+  document.getElementById('fde-tot').textContent=fmt(fdeT);
+  document.getElementById('fde-tbody').innerHTML=d.fde.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><input class="ec ec-s" value="${esc(r.bank)}" onchange="upd('fde',${i},'bank',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.currency)}" onchange="upd('fde',${i},'currency',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.foreignAmt}" onchange="upd('fde',${i},'foreignAmt',+this.value);calcFx('fde',${i})"></td>
+    <td><input class="ec" type="number" value="${r.costRate}" onchange="upd('fde',${i},'costRate',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.twdOrig)}</td>
+    <td><input class="ec" type="number" value="${r.curRate}" onchange="upd('fde',${i},'curRate',+this.value);calcFx('fde',${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('fde',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.twdVal)}</td>
+    <td><button class="ib" onclick="del('fde',${i});reSav()">✕</button></td>
+  </tr>`).join('');
+}
+const reSav=()=>renderSavings();
+function calcFx(type,i){const r=getM(curMonth)[type][i];r.twdVal=Math.round(r.foreignAmt*r.curRate);reSav();cloudSave();}
+
+// ═══════════════════════════════ INVESTMENTS ═══════════════════════════════
+function renderInvestments() {
+  const d = getM(curMonth);
+  const ovsT=d.ovs.reduce((s,r)=>s+num(r.val),0);
+  document.getElementById('ovs-tot').textContent=fmt(ovsT);
+  document.getElementById('ovs-tbody').innerHTML=d.ovs.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><strong><input class="ec ec-s" value="${esc(r.product)}" onchange="upd('ovs',${i},'product',this.value)"></strong></td>
+    <td><input class="ec" type="number" value="${r.shares}" onchange="upd('ovs',${i},'shares',+this.value);calcOvs(${i})"></td>
+    <td><input class="ec" type="number" value="${r.costUSD}" onchange="upd('ovs',${i},'costUSD',+this.value)"></td>
+    <td><input class="ec" type="number" value="${r.costRate}" onchange="upd('ovs',${i},'costRate',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.twdOrig)}</td>
+    <td><input class="ec" type="number" value="${r.txCost}" onchange="upd('ovs',${i},'txCost',+this.value)"></td>
+    <td><input class="ec" type="number" value="${r.curUSD}" onchange="upd('ovs',${i},'curUSD',+this.value);calcOvs(${i})"></td>
+    <td><input class="ec" type="number" value="${r.curRate}" onchange="upd('ovs',${i},'curRate',+this.value);calcOvs(${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('ovs',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.val)}</td>
+    <td><button class="ib" onclick="del('ovs',${i});reInv()">✕</button></td>
+  </tr>`).join('');
+
+  const twsT=d.tws.reduce((s,r)=>s+num(r.val),0);
+  document.getElementById('tws-tot').textContent=fmt(twsT);
+  document.getElementById('tws-tbody').innerHTML=d.tws.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><strong><input class="ec ec-s" value="${esc(r.name)}" onchange="upd('tws',${i},'name',this.value)"></strong></td>
+    <td><input class="ec" type="number" value="${r.shares}" onchange="upd('tws',${i},'shares',+this.value);calcTws(${i})"></td>
+    <td><input class="ec" type="number" value="${r.costPer}" onchange="upd('tws',${i},'costPer',+this.value);calcTws(${i})"></td>
+    <td class="mono mt3">${fmt(r.costTot)}</td>
+    <td><input class="ec" type="number" value="${r.curPer}" onchange="upd('tws',${i},'curPer',+this.value);calcTws(${i})"></td>
+    <td><input class="ec" type="number" value="${r.txCost}" onchange="upd('tws',${i},'txCost',+this.value);calcTws(${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('tws',${i},'note',this.value)"></td>
+    <td class="mono ${num(r.val)>=num(r.costTot)?'g':'r'}">${fmt(r.val)}</td>
+    <td><button class="ib" onclick="del('tws',${i});reInv()">✕</button></td>
+  </tr>`).join('');
+
+  const othT=d.oth.reduce((s,r)=>s+num(r.val),0);
+  document.getElementById('oth-tot').textContent=fmt(othT);
+  document.getElementById('oth-tbody').innerHTML=d.oth.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><input class="ec ec-s" value="${esc(r.name)}" onchange="upd('oth',${i},'name',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.qty}" onchange="upd('oth',${i},'qty',+this.value);calcOth(${i})"></td>
+    <td><input class="ec" type="number" value="${r.costPer}" onchange="upd('oth',${i},'costPer',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.costTot)}</td>
+    <td><input class="ec" type="number" value="${r.curPer}" onchange="upd('oth',${i},'curPer',+this.value);calcOth(${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('oth',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.val)}</td>
+    <td><button class="ib" onclick="del('oth',${i});reInv()">✕</button></td>
+  </tr>`).join('');
+}
+const reInv=()=>renderInvestments();
+function calcOvs(i){const r=getM(curMonth).ovs[i];r.val=Math.round(r.shares*r.curUSD*r.curRate);reInv();cloudSave();}
+function calcTws(i){const r=getM(curMonth).tws[i];r.costTot=Math.round(r.shares*r.costPer);r.val=Math.round(r.shares*r.curPer-r.txCost);reInv();cloudSave();}
+function calcOth(i){const r=getM(curMonth).oth[i];r.costTot=Math.round(r.qty*r.costPer);r.val=Math.round(r.qty*r.curPer);reInv();cloudSave();}
+
+// ═══════════════════════════════ PROPERTY ═══════════════════════════════
+function renderProperty() {
+  const d = getM(curMonth);
+  const movT=d.mov.reduce((s,r)=>s+num(r.val),0);
+  document.getElementById('mov-tot').textContent=fmt(movT);
+  document.getElementById('mov-tbody').innerHTML=d.mov.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><strong><input class="ec ec-s" value="${esc(r.name)}" onchange="upd('mov',${i},'name',this.value)"></strong></td>
+    <td><input class="ec" type="number" value="${r.qty}" onchange="upd('mov',${i},'qty',+this.value);calcMov(${i})"></td>
+    <td><input class="ec" type="number" value="${r.costPer}" onchange="upd('mov',${i},'costPer',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.costTot)}</td>
+    <td><input class="ec" type="number" value="${r.curPer}" onchange="upd('mov',${i},'curPer',+this.value);calcMov(${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.acquired)}" onchange="upd('mov',${i},'acquired',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('mov',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.val)}</td>
+    <td><button class="ib" onclick="del('mov',${i});reProp()">✕</button></td>
+  </tr>`).join('');
+
+  const immT=d.imm.reduce((s,r)=>s+num(r.val),0);
+  document.getElementById('imm-tot').textContent=fmt(immT);
+  document.getElementById('imm-tbody').innerHTML=d.imm.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><strong><input class="ec ec-s" value="${esc(r.name)}" onchange="upd('imm',${i},'name',this.value)"></strong></td>
+    <td><input class="ec" type="number" value="${r.area}" onchange="upd('imm',${i},'area',+this.value);calcImm(${i})"></td>
+    <td><input class="ec" type="number" value="${r.costPer}" onchange="upd('imm',${i},'costPer',+this.value)"></td>
+    <td class="mono mt3">${fmt(r.costTot)}</td>
+    <td><input class="ec" type="number" value="${r.curPer}" onchange="upd('imm',${i},'curPer',+this.value);calcImm(${i})"></td>
+    <td><input class="ec ec-s" value="${esc(r.acquired)}" onchange="upd('imm',${i},'acquired',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('imm',${i},'note',this.value)"></td>
+    <td class="mono g">${fmt(r.val)}</td>
+    <td><button class="ib" onclick="del('imm',${i});reProp()">✕</button></td>
+  </tr>`).join('');
+}
+const reProp=()=>renderProperty();
+function calcMov(i){const r=getM(curMonth).mov[i];r.costTot=r.qty*r.costPer;r.val=r.qty*r.curPer;reProp();cloudSave();}
+function calcImm(i){const r=getM(curMonth).imm[i];r.costTot=r.area*r.costPer;r.val=r.area*r.curPer;reProp();cloudSave();}
+
+// ═══════════════════════════════ LIABILITIES ═══════════════════════════════
+function renderLiabilities() {
+  const d=getM(curMonth);
+  const liaT=d.lia.reduce((s,r)=>s+num(r.balance),0);
+  const t=computeTotals(curMonth);
+  document.getElementById('lia-cards').innerHTML=`
+    <div class="sc"><div class="lbl">負債總額</div><div class="val r">${fmt(liaT)}</div></div>
+    <div class="sc"><div class="lbl">負債佔資產比</div><div class="val">${t.total?((liaT/t.total)*100).toFixed(1)+'%':'-'}</div></div>
+    <div class="sc"><div class="lbl">估計每月應還</div><div class="val r">${fmt(d.lia.reduce((s,r)=>s+(num(r.months)>0?num(r.remain)/num(r.months):0),0))}</div></div>`;
+  document.getElementById('lia-tbody').innerHTML=d.lia.map((r,i)=>`<tr>
+    <td class="mt3">${i+1}</td>
+    <td><strong><input class="ec ec-s" value="${esc(r.creditor)}" onchange="upd('lia',${i},'creditor',this.value)"></strong></td>
+    <td><input class="ec" value="${esc(r.rate)}" onchange="upd('lia',${i},'rate',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.type)}" onchange="upd('lia',${i},'type',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.orig}" onchange="upd('lia',${i},'orig',+this.value)"></td>
+    <td><input class="ec" type="number" value="${r.remain}" onchange="upd('lia',${i},'remain',+this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.startDate)}" onchange="upd('lia',${i},'startDate',this.value)"></td>
+    <td><input class="ec" type="number" value="${r.months}" onchange="upd('lia',${i},'months',+this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('lia',${i},'note',this.value)"></td>
+    <td><input class="ec r" type="number" value="${r.balance}" onchange="upd('lia',${i},'balance',+this.value);reLia()"></td>
+    <td><button class="ib" onclick="del('lia',${i});reLia()">✕</button></td>
+  </tr>`).join('');
+}
+const reLia=()=>renderLiabilities();
+
+// ═══════════════════════════════ CASHFLOW ═══════════════════════════════
+function renderCashflow() {
+  const d=getM(curMonth);
+  const expT=d.cfe.reduce((s,r)=>s+num(r.amt),0);
+  const incT=d.cfi.reduce((s,r)=>s+num(r.amt),0);
+  const net=incT-expT;
+  document.getElementById('cf-exp-tot').textContent=' '+fmt(expT);
+  document.getElementById('cf-inc-tot').textContent=' '+fmt(incT);
+  const al=document.getElementById('cf-al');
+  al.className='al '+(net>=0?'ok':'ng');
+  al.textContent=(net>=0?'✅':'⚠️')+` ${curMonth} 現金流淨額：${fmt(net)}（${net>=0?'盈餘':'超支'}）`;
+  document.getElementById('cf-cards').innerHTML=`
+    <div class="sc"><div class="lbl">總收入</div><div class="val g">${fmt(incT)}</div></div>
+    <div class="sc"><div class="lbl">總支出</div><div class="val r">${fmt(expT)}</div></div>
+    <div class="sc"><div class="lbl">淨額</div><div class="val ${net>=0?'g':'r'}">${fmt(net)}</div></div>`;
+  document.getElementById('cf-exp-tbody').innerHTML=d.cfe.map((r,i)=>`<tr>
+    <td><input class="ec ec-s" value="${esc(r.cat)}" onchange="upd('cfe',${i},'cat',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.sub)}" onchange="upd('cfe',${i},'sub',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('cfe',${i},'note',this.value)"></td>
+    <td><input class="ec r" type="number" value="${r.amt}" onchange="upd('cfe',${i},'amt',+this.value);reCf()"></td>
+    <td><button class="ib" onclick="del('cfe',${i});reCf()">✕</button></td>
+  </tr>`).join('');
+  document.getElementById('cf-inc-tbody').innerHTML=d.cfi.map((r,i)=>`<tr>
+    <td><input class="ec ec-s" value="${esc(r.cat)}" onchange="upd('cfi',${i},'cat',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.sub)}" onchange="upd('cfi',${i},'sub',this.value)"></td>
+    <td><input class="ec ec-s" value="${esc(r.note)}" onchange="upd('cfi',${i},'note',this.value)"></td>
+    <td><input class="ec g" type="number" value="${r.amt}" onchange="upd('cfi',${i},'amt',+this.value);reCf()"></td>
+    <td><button class="ib" onclick="del('cfi',${i});reCf()">✕</button></td>
+  </tr>`).join('');
+}
+const reCf=()=>renderCashflow();
+
+// ═══════════════════════════════ HISTORY ═══════════════════════════════
+function renderHistory() {
+  const ms=sortedMonths();
+  const tots=ms.map(m=>({m,t:computeTotals(m)}));
+  const cfInc=ms.map(m=>getM(m).cfi.reduce((s,r)=>s+num(r.amt),0));
+  const cfExp=ms.map(m=>getM(m).cfe.reduce((s,r)=>s+num(r.amt),0));
+  const fields=[
+    {k:'savT',l:'活期存款'},{k:'fixT',l:'定期存款'},{k:'fcaT',l:'外幣現金'},
+    {k:'fdeT',l:'外幣存款'},{k:'ovsT',l:'海外股票'},{k:'twsT',l:'台股/ETF'},
+    {k:'othT',l:'其他資產'},{k:'movT',l:'動產（車輛）'},{k:'immT',l:'不動產'},
+    {k:'liaT',l:'負債'},{k:'total',l:'總資產'},
+    {k:'netCore',l:'★ 金融資產淨值',bold:true,green:true},
+    {k:'netNoMov',l:'含不動產淨值'},{k:'net',l:'含全部淨值'},
+  ];
+  document.getElementById('hist-tbl').innerHTML=`
+    <thead><tr><th>項目</th>${tots.map(({m})=>`<th class="mono" style="white-space:nowrap;color:${m===curMonth?'var(--accent)':'var(--t3)'}">${m}</th>`).join('')}</tr></thead>
+    <tbody>
+    ${fields.map(f=>`<tr ${f.bold?'style="font-weight:700;background:rgba(56,217,169,.05)"':f.k==='total'?'style="font-weight:700;background:rgba(255,255,255,.03)"':''}>
+      <td class="${f.green?'g':'mt2'}">${f.l}</td>
+      ${tots.map(({t})=>`<td class="mono ${f.k==='liaT'?'r':f.k==='netCore'||f.k==='netNoMov'||f.k==='net'?(t[f.k]>=0?'g':'r'):'mt3'}">${fmt(t[f.k])}</td>`).join('')}
+    </tr>`).join('')}
+    <tr style="border-top:1px solid var(--border)"><td class="g" style="font-size:12px">現金流收入</td>${cfInc.map(v=>`<td class="mono g">${fmt(v)}</td>`).join('')}</tr>
+    <tr><td class="r" style="font-size:12px">現金流支出</td>${cfExp.map(v=>`<td class="mono r">${fmt(v)}</td>`).join('')}</tr>
+    <tr style="font-weight:700"><td>現金流淨額</td>${cfInc.map((v,i)=>`<td class="mono ${v-cfExp[i]>=0?'g':'r'}">${fmt(v-cfExp[i])}</td>`).join('')}</tr>
+    </tbody>`;
+}
+
+// ═══════════════════════════════ MODAL ADD ═══════════════════════════════
+const modalDefs = {
+  sav:{title:'新增活期帳戶',fields:[{k:'bank',l:'銀行',t:'text'},{k:'rate',l:'利率說明',t:'text'},{k:'note',l:'說明',t:'text'},{k:'amount',l:'金額（台幣）',t:'number'}],def:{bank:'',rate:'',note:'',amount:0}},
+  fix:{title:'新增定期存款',fields:[{k:'bank',l:'銀行',t:'text'},{k:'rate',l:'利率',t:'text'},{k:'months',l:'期限（月）',t:'number'},{k:'type',l:'機動/固定',t:'text',dv:'機動'},{k:'maturity',l:'到期日',t:'text'},{k:'note',l:'說明',t:'text'},{k:'amount',l:'金額（台幣）',t:'number'}],def:{bank:'',rate:'',months:12,type:'機動',maturity:'',note:'',amount:0}},
+  fca:{title:'新增外幣現金',fields:[{k:'location',l:'位置',t:'text'},{k:'currency',l:'幣別',t:'text',dv:'美金'},{k:'foreignAmt',l:'外幣金額',t:'number'},{k:'costRate',l:'成本匯率',t:'number',dv:31.98},{k:'curRate',l:'目前匯率',t:'number',dv:31.98},{k:'note',l:'說明',t:'text'}],def:{location:'',currency:'美金',foreignAmt:0,costRate:31.98,twdOrig:0,curRate:31.98,note:'',twdVal:0}},
+  fde:{title:'新增外幣存款',fields:[{k:'bank',l:'銀行',t:'text'},{k:'currency',l:'幣別',t:'text',dv:'美金'},{k:'foreignAmt',l:'外幣金額',t:'number'},{k:'costRate',l:'成本匯率',t:'number',dv:31.98},{k:'curRate',l:'目前匯率',t:'number',dv:31.98},{k:'note',l:'說明',t:'text'}],def:{bank:'',currency:'美金',foreignAmt:0,costRate:31.98,twdOrig:0,curRate:31.98,note:'',twdVal:0}},
+  ovs:{title:'新增海外股票',fields:[{k:'product',l:'商品代碼',t:'text'},{k:'shares',l:'股數',t:'number'},{k:'costUSD',l:'成本(USD/股)',t:'number'},{k:'costRate',l:'成本匯率',t:'number',dv:31.98},{k:'txCost',l:'交易成本',t:'number'},{k:'curUSD',l:'現值(USD/股)',t:'number'},{k:'curRate',l:'目前匯率',t:'number',dv:31.98},{k:'note',l:'說明',t:'text'}],def:{product:'',shares:0,costUSD:0,costRate:31.98,twdOrig:0,txCost:0,curUSD:0,curRate:31.98,note:'',val:0}},
+  tws:{title:'新增台股/ETF',fields:[{k:'name',l:'名稱',t:'text'},{k:'shares',l:'股數',t:'number'},{k:'costPer',l:'成本/股',t:'number'},{k:'curPer',l:'現值/股',t:'number'},{k:'txCost',l:'交易成本',t:'number'},{k:'note',l:'說明',t:'text'}],def:{name:'',shares:0,costPer:0,costTot:0,curPer:0,txCost:0,note:'',val:0}},
+  oth:{title:'新增其他資產',fields:[{k:'name',l:'名稱',t:'text'},{k:'qty',l:'持有數',t:'number'},{k:'costPer',l:'成本/單位',t:'number'},{k:'curPer',l:'現值/單位',t:'number'},{k:'note',l:'說明',t:'text'}],def:{name:'',qty:0,costPer:0,costTot:0,curPer:0,note:'',val:0}},
+  mov:{title:'新增動產',fields:[{k:'name',l:'名稱',t:'text'},{k:'qty',l:'數量',t:'number',dv:1},{k:'costPer',l:'成本/單位',t:'number'},{k:'curPer',l:'估值/單位',t:'number'},{k:'acquired',l:'取得日',t:'text'},{k:'note',l:'說明',t:'text'}],def:{name:'',qty:1,costPer:0,costTot:0,curPer:0,acquired:'',note:'',val:0}},
+  imm:{title:'新增不動產',fields:[{k:'name',l:'名稱',t:'text'},{k:'area',l:'坪數',t:'number'},{k:'costPer',l:'成本/坪',t:'number'},{k:'curPer',l:'估值/坪',t:'number'},{k:'acquired',l:'取得日',t:'text'},{k:'note',l:'說明',t:'text'}],def:{name:'',area:0,costPer:0,costTot:0,curPer:0,acquired:'',note:'',val:0}},
+  lia:{title:'新增負債',fields:[{k:'creditor',l:'債務人/說明',t:'text'},{k:'rate',l:'利率',t:'text'},{k:'type',l:'機動/固定',t:'text',dv:'固定'},{k:'orig',l:'原始借金',t:'number'},{k:'remain',l:'剩餘借金',t:'number'},{k:'startDate',l:'借款日',t:'text'},{k:'months',l:'借款期(月)',t:'number'},{k:'note',l:'說明',t:'text'},{k:'balance',l:'剩餘負債',t:'number'}],def:{creditor:'',rate:'',type:'固定',orig:0,remain:0,startDate:'',months:0,note:'',balance:0}},
+  cfe:{title:'新增支出',fields:[{k:'cat',l:'類型',t:'text'},{k:'sub',l:'子類型',t:'text',dv:'固定'},{k:'note',l:'說明',t:'text'},{k:'amt',l:'金額',t:'number'}],def:{cat:'',sub:'固定',note:'',amt:0}},
+  cfi:{title:'新增收入',fields:[{k:'cat',l:'類型',t:'text'},{k:'sub',l:'子類型',t:'text',dv:'固定'},{k:'note',l:'說明',t:'text'},{k:'amt',l:'金額',t:'number'}],def:{cat:'',sub:'固定',note:'',amt:0}},
+};
+
+function openAdd(type) {
+  modalType=type;
+  const def=modalDefs[type];
+  document.getElementById('m-title').textContent=def.title;
+  document.getElementById('m-body').innerHTML=def.fields.map(f=>`
+    <div class="fg"><label>${f.l}</label>
+    <input type="${f.t}" id="mf-${f.k}" value="${f.dv!==undefined?f.dv:(f.t==='number'?0:'')}" placeholder="${f.l}">
+    </div>`).join('');
+  document.getElementById('modal').classList.add('open');
+}
+
+function saveModal() {
+  const type=modalType;
+  const def=modalDefs[type];
+  const row={...def.def};
+  def.fields.forEach(f=>{
+    const el=document.getElementById('mf-'+f.k);
+    row[f.k]=f.t==='number'?num(el.value):el.value;
+  });
+  if(type==='fca'||type==='fde') row.twdVal=Math.round(row.foreignAmt*row.curRate);
+  if(type==='ovs') row.val=Math.round(row.shares*row.curUSD*row.curRate);
+  if(type==='tws'){row.costTot=Math.round(row.shares*row.costPer);row.val=Math.round(row.shares*row.curPer-row.txCost);}
+  if(type==='oth'){row.costTot=Math.round(row.qty*row.costPer);row.val=Math.round(row.qty*row.curPer);}
+  if(type==='mov'){row.costTot=row.qty*row.costPer;row.val=row.qty*row.curPer;}
+  if(type==='imm'){row.costTot=row.area*row.costPer;row.val=row.area*row.curPer;}
+  getM(curMonth)[type].push(row);
+  closeModal();
+  renderAll();
+  cloudSave();
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+// ═══════════════════════════════ CRUD HELPERS ═══════════════════════════════
+function upd(type,i,key,val){getM(curMonth)[type][i][key]=val;cloudSave();}
+function del(type,i){if(!confirm('確認刪除？'))return false;getM(curMonth)[type].splice(i,1);cloudSave();return true;}
+
+// ═══════════════════════════════ NAVIGATION ═══════════════════════════════
+function tSec(h){h.parentElement.classList.toggle('col');}
+
+document.querySelectorAll('.ni').forEach(el=>{
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+    this.classList.add('active');
+    curPage=this.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+curPage).classList.add('active');
+    renderAll();
+  });
+});
+
+// ═══════════════════════════════ EXPORT / IMPORT ═══════════════════════════════
+function exportData(){
+  const blob=new Blob([JSON.stringify({v:3,curMonth,DB},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`finance-${new Date().toISOString().slice(0,10)}.json`;a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.DB)DB=d.DB; else DB={months:d};
+      if(d.curMonth)curMonth=d.curMonth;
+      renderAll();
+      await _saveNow();
+      alert('✅ 匯入成功，資料已同步雲端！');
+    }catch(err){console.error(err);alert('❌ 匯入失敗');}
+  };
+  r.readAsText(f);
+}
+
+// ═══════════════════════════════ INIT ═══════════════════════════════
+_loadFromCloud();
+
+</script>
+</body>
+</html>
