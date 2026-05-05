@@ -150,8 +150,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <div class="ni" data-page="history"><span class="ic">📅</span>月度趨勢</div>
   </nav>
   <div class="sf">
+    <div id="saveStatus" style="font-size:11px;color:var(--t3);text-align:center;padding:4px 0;border-radius:6px;background:var(--s2);border:1px solid var(--border)">
+      <span id="saveIcon">○</span> <span id="saveText">尚未儲存</span>
+    </div>
     <button class="sbtn" onclick="exportData()">⬇ 匯出資料 (.json)</button>
     <label class="sbtn" style="cursor:pointer">⬆ 匯入資料<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+    <button class="sbtn" onclick="restoreBackup()" style="color:var(--warn);border-color:var(--warn)">↺ 還原匯入前備份</button>
+    <button class="sbtn" onclick="resetDB()" style="color:var(--red);border-color:var(--red)">🗑 清除資料還原</button>
   </div>
 </aside>
 
@@ -384,7 +389,7 @@ function mbarHTML() {
   </div>`;
 }
 
-function switchMonth(m) { curMonth=m; renderAll(); }
+function switchMonth(m) { curMonth=m; saveDB(); renderAll(); }
 
 function addMonth() {
   const m = prompt('新增月份（格式：2026-05）：');
@@ -401,6 +406,7 @@ function addMonth() {
     }
   }
   curMonth = m;
+  saveDB();
   renderAll();
 }
 
@@ -409,6 +415,7 @@ function deleteMonth() {
   if (!confirm(`確認刪除 ${curMonth} 的所有資料？無法復原。`)) return;
   delete DB.months[curMonth];
   curMonth = sortedMonths().slice(-1)[0];
+  saveDB();
   renderAll();
 }
 
@@ -593,7 +600,7 @@ function renderSavings() {
   </tr>`).join('');
 }
 const reSav=()=>renderSavings();
-function calcFx(type,i){const r=getM(curMonth)[type][i];r.twdVal=Math.round(r.foreignAmt*r.curRate);reSav();}
+function calcFx(type,i){const r=getM(curMonth)[type][i];r.twdVal=Math.round(r.foreignAmt*r.curRate);saveDB();reSav();}
 
 // ═══════════════════════════════ INVESTMENTS ═══════════════════════════════
 function renderInvestments() {
@@ -812,6 +819,7 @@ function saveModal() {
   if(type==='mov'){row.costTot=row.qty*row.costPer;row.val=row.qty*row.curPer;}
   if(type==='imm'){row.costTot=row.area*row.costPer;row.val=row.area*row.curPer;}
   getM(curMonth)[type].push(row);
+  saveDB();
   closeModal();
   renderAll();
 }
@@ -819,8 +827,105 @@ function saveModal() {
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 
 // ═══════════════════════════════ CRUD HELPERS ═══════════════════════════════
-function upd(type,i,key,val){getM(curMonth)[type][i][key]=val;}
-function del(type,i){if(!confirm('確認刪除？'))return false;getM(curMonth)[type].splice(i,1);return true;}
+function upd(type,i,key,val){getM(curMonth)[type][i][key]=val;saveDB();}
+function del(type,i){if(!confirm('確認刪除？'))return false;getM(curMonth)[type].splice(i,1);saveDB();return true;}
+
+// ═══════════════════════════════ LOCAL STORAGE ═══════════════════════════════
+const LS_KEY = 'finance-tracker-v1';
+const LS_BACKUP_KEY = 'finance-tracker-v1-backup';
+const LS_META_KEY = 'finance-tracker-v1-meta';
+
+function setSaveStatus(state, msg){
+  // state: 'saving' | 'saved' | 'error' | 'idle'
+  const icon = document.getElementById('saveIcon');
+  const text = document.getElementById('saveText');
+  const box = document.getElementById('saveStatus');
+  if(!icon||!text||!box) return;
+  if(state==='saving'){ icon.textContent='◐'; text.textContent='儲存中...'; box.style.color='var(--warn)'; box.style.borderColor='var(--warn)'; }
+  else if(state==='saved'){ icon.textContent='✓'; text.textContent=msg||'已儲存'; box.style.color='var(--green)'; box.style.borderColor='var(--green)'; }
+  else if(state==='error'){ icon.textContent='✕'; text.textContent=msg||'儲存失敗'; box.style.color='var(--red)'; box.style.borderColor='var(--red)'; }
+  else { icon.textContent='○'; text.textContent=msg||'尚未儲存'; box.style.color='var(--t3)'; box.style.borderColor='var(--border)'; }
+}
+
+function timeAgo(ts){
+  if(!ts) return '尚未儲存';
+  const diff = Date.now()-ts;
+  if(diff < 5000) return '剛剛已儲存';
+  if(diff < 60000) return Math.floor(diff/1000)+' 秒前已儲存';
+  if(diff < 3600000) return Math.floor(diff/60000)+' 分鐘前已儲存';
+  return new Date(ts).toLocaleString('zh-TW',{hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'})+' 已儲存';
+}
+
+let _saveTimer = null;
+let _lastSaveTime = null;
+
+function saveDB(){
+  // Show "saving" immediately for visual feedback
+  setSaveStatus('saving');
+  // Debounce so rapid edits don't hammer localStorage
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, 300);
+}
+
+function _doSave(){
+  try{
+    const payload = JSON.stringify({curMonth, DB});
+    localStorage.setItem(LS_KEY, payload);
+    _lastSaveTime = Date.now();
+    localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime, size: payload.length}));
+    setSaveStatus('saved', timeAgo(_lastSaveTime));
+  }catch(e){
+    console.error('儲存失敗', e);
+    setSaveStatus('error', '儲存失敗：'+(e.message||'空間不足？'));
+  }
+}
+
+function loadDB(){
+  try{
+    const s = localStorage.getItem(LS_KEY);
+    if(!s){ setSaveStatus('idle','尚未有資料'); return false; }
+    const p = JSON.parse(s);
+    if(p.DB) DB = p.DB;
+    if(p.curMonth) curMonth = p.curMonth;
+    // Read meta for last save time
+    try{
+      const meta = JSON.parse(localStorage.getItem(LS_META_KEY)||'{}');
+      _lastSaveTime = meta.lastSave || null;
+    }catch{}
+    setSaveStatus('saved', timeAgo(_lastSaveTime));
+    return true;
+  }catch(e){ console.warn('載入失敗', e); setSaveStatus('error','載入失敗'); return false; }
+}
+
+function resetDB(){
+  if(!confirm('確認清除所有資料？將回復為預設範例資料，無法復原。\n（建議先按「⬇ 匯出資料」備份）')) return;
+  // Backup before reset just in case
+  try{ const cur = localStorage.getItem(LS_KEY); if(cur) localStorage.setItem(LS_BACKUP_KEY, cur); }catch{}
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+function restoreBackup(){
+  const b = localStorage.getItem(LS_BACKUP_KEY);
+  if(!b){ alert('沒有可用的備份。\n（每次按「匯入」或「清除資料」前會自動備份一份）'); return; }
+  if(!confirm('確認還原到上次「匯入前」的備份？目前資料將被覆蓋。')) return;
+  try{
+    const p = JSON.parse(b);
+    if(p.DB) DB = p.DB;
+    if(p.curMonth) curMonth = p.curMonth;
+    saveDB();
+    renderAll();
+    alert('✅ 已還原備份');
+  }catch(e){ alert('❌ 備份檔損毀，無法還原'); }
+}
+
+// Periodically refresh the "X minutes ago" text
+setInterval(()=>{ if(_lastSaveTime) setSaveStatus('saved', timeAgo(_lastSaveTime)); }, 30000);
+
+// Last-chance save before page unload (in case debounce timer hasn't fired)
+window.addEventListener('beforeunload', ()=>{
+  if(_saveTimer){ clearTimeout(_saveTimer); _doSave(); }
+});
 
 // ═══════════════════════════════ NAVIGATION ═══════════════════════════════
 function tSec(h){h.parentElement.classList.toggle('col');}
@@ -848,16 +953,25 @@ function importData(e){
   r.onload=ev=>{
     try{
       const d=JSON.parse(ev.target.result);
+      // Backup current data before overwriting
+      try{ const cur = localStorage.getItem(LS_KEY); if(cur) localStorage.setItem(LS_BACKUP_KEY, cur); }catch{}
       if(d.DB)DB=d.DB; else DB={months:d};
       if(d.curMonth)curMonth=d.curMonth;
-      renderAll();alert('✅ 匯入成功！');
+      saveDB();
+      renderAll();alert('✅ 匯入成功！\n（原本的資料已備份，可按「↺ 還原匯入前備份」復原）');
     }catch{alert('❌ 匯入失敗');}
+    // Reset input so importing the same file again will fire onchange
+    e.target.value = '';
   };
   r.readAsText(f);
 }
 
 // ═══════════════════════════════ INIT ═══════════════════════════════
+const _hadData = loadDB();
 renderAll();
+// If no data was loaded (first visit), persist the default sample data immediately
+// so the user gets a consistent state on next load.
+if(!_hadData){ _doSave(); }
 </script>
 </body>
 </html>
