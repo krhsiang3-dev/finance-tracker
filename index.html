@@ -150,8 +150,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <div class="ni" data-page="history"><span class="ic">📅</span>月度趨勢</div>
   </nav>
   <div class="sf">
-    <div id="saveStatus" style="font-size:11px;color:var(--t3);text-align:center;padding:4px 0;border-radius:6px;background:var(--s2);border:1px solid var(--border)">
-      <span id="saveIcon">○</span> <span id="saveText">尚未儲存</span>
+    <div id="syncStatus" onclick="openSyncSettings()" title="點擊設定雲端同步" style="cursor:pointer;font-size:11px;color:var(--t3);text-align:center;padding:6px;border-radius:6px;background:var(--s2);border:1px solid var(--border);transition:all .15s">
+      <span id="syncIcon">○</span> <span id="syncText">點此啟用雲端同步</span>
     </div>
     <button class="sbtn" onclick="exportData()">⬇ 匯出資料 (.json)</button>
     <label class="sbtn" style="cursor:pointer">⬆ 匯入資料<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
@@ -259,6 +259,83 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <div class="ma">
       <button class="btn" onclick="closeModal()">取消</button>
       <button class="btn btn-p" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync Settings Modal -->
+<div class="mo" id="syncModal" onclick="if(event.target===this)closeSyncSettings()">
+  <div class="md" style="max-width:580px">
+    <h2>☁ 雲端同步設定</h2>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin:8px 0 16px 0">
+      <div class="syncTab active" data-tab="dropbox" onclick="switchSyncTab('dropbox')" style="padding:8px 14px;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);font-size:13px">Dropbox 自動同步</div>
+      <div class="syncTab" data-tab="url" onclick="switchSyncTab('url')" style="padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--t3);font-size:13px">網址備援（手動）</div>
+    </div>
+
+    <!-- ── Dropbox tab ────────────────────────────────────────── -->
+    <div id="tab-dropbox">
+      <div id="syncStatusPanel" style="margin-bottom:14px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <div id="syncStatusText" style="color:var(--t2)">尚未設定</div>
+        <div id="syncLastSync" style="color:var(--t3);font-size:11px;margin-top:4px"></div>
+      </div>
+
+      <details id="setupGuide" style="margin-bottom:12px">
+        <summary style="cursor:pointer;color:var(--accent);font-size:13px;padding:6px 0;user-select:none">📘 看圖學設定（首次使用必看，點開展開）</summary>
+        <div style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--t2)">
+          <strong style="color:var(--text)">🅰️ 第一台裝置（取得 Token）</strong>
+          <ol style="padding-left:20px;margin:8px 0">
+            <li>點開 <a href="https://www.dropbox.com/developers/apps/create" target="_blank" style="color:var(--accent)">Dropbox App 建立頁</a>（會在新分頁開）</li>
+            <li>第 1 題「Choose an API」→ 點 <strong style="background:var(--s3);padding:1px 6px;border-radius:3px">Scoped access</strong></li>
+            <li>第 2 題「Choose the type of access」→ 點 <strong style="background:var(--s3);padding:1px 6px;border-radius:3px">App folder</strong>（建議，較安全）</li>
+            <li>第 3 題「Name your app」→ 取個名字，例如 <code style="background:var(--s3);padding:1px 5px;border-radius:3px">finance-tracker-我的名字</code><br><span style="color:var(--warn);font-size:11px">⚠️ 名字必須是全 Dropbox 唯一，如果失敗就加數字</span></li>
+            <li>勾選同意 → 點 <strong>Create app</strong></li>
+            <li>進到 App 設定頁，<strong style="color:var(--red)">點上方的「Permissions」分頁</strong></li>
+            <li>勾選這兩個權限：<br>　✓ <code style="background:var(--s3);padding:1px 5px;border-radius:3px">files.content.write</code><br>　✓ <code style="background:var(--s3);padding:1px 5px;border-radius:3px">files.content.read</code><br>滑到最下面點 <strong>Submit</strong></li>
+            <li>回到「Settings」分頁，往下捲到「OAuth 2」區塊</li>
+            <li>找到「<strong>Access token expiration</strong>」→ 改成 <strong style="color:var(--red)">No expiration</strong>（不會過期）</li>
+            <li>往下找到「Generated access token」→ 點 <strong>Generate</strong> 按鈕</li>
+            <li>會冒出一串很長的字串（<code style="background:var(--s3);padding:1px 5px;border-radius:3px">sl.xxx...</code>）→ 整段複製</li>
+            <li>回到這個視窗，貼到下方「Access Token」欄位 → 點「測試並啟用」</li>
+          </ol>
+          <strong style="color:var(--text)">🅱️ 第二台裝置（同步資料）</strong>
+          <ol style="padding-left:20px;margin:8px 0">
+            <li>把<strong>同一個 Token</strong>從第一台複製過來（簡訊/LINE 給自己即可）</li>
+            <li>打開這個網頁 → 點同步狀態 → 同樣貼上 Token → 啟用</li>
+            <li>會自動下載第一台的資料</li>
+          </ol>
+        </div>
+      </details>
+
+      <label style="display:block;color:var(--t3);font-size:11px;margin-bottom:4px">Access Token</label>
+      <input id="tokenInput" type="password" placeholder="sl.xxxxxxxxxxxxxxxxxxxx..." style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;box-sizing:border-box">
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="btn" onclick="togglePwd()" style="font-size:11px;padding:4px 10px" id="togglePwdBtn">👁 顯示</button>
+        <div style="flex:1"></div>
+      </div>
+
+      <div id="syncError" style="display:none;margin-top:12px;padding:10px 12px;background:rgba(240,107,107,.1);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:12px;line-height:1.5"></div>
+      <div id="syncOK" style="display:none;margin-top:12px;padding:10px 12px;background:rgba(74,222,128,.1);border:1px solid var(--green);border-radius:6px;color:var(--green);font-size:12px;line-height:1.5"></div>
+    </div>
+
+    <!-- ── URL fallback tab ───────────────────────────────────── -->
+    <div id="tab-url" style="display:none">
+      <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">如果 Dropbox 啟用不了，可以用「網址備援」手動同步：</p>
+      <ol style="padding-left:20px;color:var(--t2);font-size:12px;line-height:1.9;margin-bottom:16px">
+        <li>在 <strong>來源裝置</strong>（資料正確的那台）點下方「產生分享連結」</li>
+        <li>把連結複製、傳給另一台裝置（LINE/簡訊/Email）</li>
+        <li>在 <strong>目標裝置</strong>打開連結 → 自動匯入</li>
+      </ol>
+      <button class="btn btn-p" onclick="generateShareUrl()" style="width:100%">📋 產生分享連結（複製到剪貼簿）</button>
+      <textarea id="shareUrlBox" readonly style="display:none;width:100%;margin-top:10px;padding:10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:10px;height:80px;resize:none;box-sizing:border-box"></textarea>
+      <div style="color:var(--t3);font-size:11px;margin-top:8px;line-height:1.5">💡 連結可能很長（資料越多越長）。若超過簡訊長度限制，建議用 LINE 或 Email 傳送。</div>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="disconnectSync()" id="disconnectBtn" style="color:var(--red);border-color:var(--red);display:none">中止同步</button>
+      <button class="btn" onclick="closeSyncSettings()">關閉</button>
+      <button class="btn btn-p" onclick="testAndConnect()" id="connectBtn">測試並啟用</button>
     </div>
   </div>
 </div>
@@ -830,85 +907,474 @@ function closeModal(){document.getElementById('modal').classList.remove('open');
 function upd(type,i,key,val){getM(curMonth)[type][i][key]=val;saveDB();}
 function del(type,i){if(!confirm('確認刪除？'))return false;getM(curMonth)[type].splice(i,1);saveDB();return true;}
 
-// ═══════════════════════════════ LOCAL STORAGE ═══════════════════════════════
+// ═══════════════════════════════ STORAGE (Local + Dropbox) ═══════════════════════════════
 const LS_KEY = 'finance-tracker-v1';
 const LS_BACKUP_KEY = 'finance-tracker-v1-backup';
 const LS_META_KEY = 'finance-tracker-v1-meta';
-
-function setSaveStatus(state, msg){
-  // state: 'saving' | 'saved' | 'error' | 'idle'
-  const icon = document.getElementById('saveIcon');
-  const text = document.getElementById('saveText');
-  const box = document.getElementById('saveStatus');
-  if(!icon||!text||!box) return;
-  if(state==='saving'){ icon.textContent='◐'; text.textContent='儲存中...'; box.style.color='var(--warn)'; box.style.borderColor='var(--warn)'; }
-  else if(state==='saved'){ icon.textContent='✓'; text.textContent=msg||'已儲存'; box.style.color='var(--green)'; box.style.borderColor='var(--green)'; }
-  else if(state==='error'){ icon.textContent='✕'; text.textContent=msg||'儲存失敗'; box.style.color='var(--red)'; box.style.borderColor='var(--red)'; }
-  else { icon.textContent='○'; text.textContent=msg||'尚未儲存'; box.style.color='var(--t3)'; box.style.borderColor='var(--border)'; }
-}
-
-function timeAgo(ts){
-  if(!ts) return '尚未儲存';
-  const diff = Date.now()-ts;
-  if(diff < 5000) return '剛剛已儲存';
-  if(diff < 60000) return Math.floor(diff/1000)+' 秒前已儲存';
-  if(diff < 3600000) return Math.floor(diff/60000)+' 分鐘前已儲存';
-  return new Date(ts).toLocaleString('zh-TW',{hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'})+' 已儲存';
-}
+const LS_SYNC_KEY = 'finance-tracker-sync';   // {token}
+const DBX_PATH = '/finance-tracker.json';     // file path inside Dropbox app folder
 
 let _saveTimer = null;
 let _lastSaveTime = null;
+let _pollTimer = null;
+let _lastRemoteRev = null;  // Dropbox file rev for change detection
+let _isPulling = false;
 
-function saveDB(){
-  // Show "saving" immediately for visual feedback
-  setSaveStatus('saving');
-  // Debounce so rapid edits don't hammer localStorage
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(_doSave, 300);
+function getSyncConfig(){
+  try{ return JSON.parse(localStorage.getItem(LS_SYNC_KEY)||'null'); }catch{ return null; }
+}
+function setSyncConfig(cfg){
+  if(cfg) localStorage.setItem(LS_SYNC_KEY, JSON.stringify(cfg));
+  else localStorage.removeItem(LS_SYNC_KEY);
 }
 
-function _doSave(){
+function setSyncStatus(state, msg){
+  const icon = document.getElementById('syncIcon');
+  const text = document.getElementById('syncText');
+  const box = document.getElementById('syncStatus');
+  if(!icon||!text||!box) return;
+  const map = {
+    off:    {ic:'○', col:'var(--t3)',    bd:'var(--border)', def:'點此啟用雲端同步'},
+    saving: {ic:'◐', col:'var(--warn)',  bd:'var(--warn)',   def:'同步中...'},
+    saved:  {ic:'✓', col:'var(--green)', bd:'var(--green)',  def:'已儲存（本機）'},
+    cloud:  {ic:'☁', col:'var(--accent)',bd:'var(--accent)', def:'已同步雲端'},
+    offline:{ic:'⚠', col:'var(--warn)',  bd:'var(--warn)',   def:'離線（已存本機）'},
+    error:  {ic:'✕', col:'var(--red)',   bd:'var(--red)',    def:'同步失敗（點此檢查）'},
+  };
+  const c = map[state]||map.off;
+  icon.textContent = c.ic;
+  text.textContent = msg || c.def;
+  box.style.color = c.col;
+  box.style.borderColor = c.bd;
+}
+
+function timeAgo(ts){
+  if(!ts) return '';
+  const diff = Date.now()-ts;
+  if(diff < 5000) return '剛剛';
+  if(diff < 60000) return Math.floor(diff/1000)+' 秒前';
+  if(diff < 3600000) return Math.floor(diff/60000)+' 分鐘前';
+  return new Date(ts).toLocaleString('zh-TW',{hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'});
+}
+
+// ─── Save: localStorage (always) + Dropbox (if configured) ───────────────────
+function saveDB(){
+  const cfg = getSyncConfig();
+  setSyncStatus('saving', cfg ? '同步中...' : '儲存中...');
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, cfg ? 1500 : 300);
+}
+
+async function _doSave(){
+  let payload;
   try{
-    const payload = JSON.stringify({curMonth, DB});
+    payload = JSON.stringify({curMonth, DB, lastModified: Date.now()});
     localStorage.setItem(LS_KEY, payload);
     _lastSaveTime = Date.now();
-    localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime, size: payload.length}));
-    setSaveStatus('saved', timeAgo(_lastSaveTime));
+    localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime}));
   }catch(e){
-    console.error('儲存失敗', e);
-    setSaveStatus('error', '儲存失敗：'+(e.message||'空間不足？'));
+    console.error('本機儲存失敗', e);
+    setSyncStatus('error', '本機儲存失敗');
+    return;
+  }
+
+  const cfg = getSyncConfig();
+  if(!cfg){
+    setSyncStatus('saved', '已儲存 · '+timeAgo(_lastSaveTime));
+    return;
+  }
+
+  try{
+    await dbxUpload(cfg.token, payload);
+    setSyncStatus('cloud', '雲端 · '+timeAgo(_lastSaveTime));
+  }catch(e){
+    console.warn('雲端同步失敗（本機已存）', e);
+    setSyncStatus('offline', '離線 · '+(e.message||'同步失敗'));
   }
 }
 
-function loadDB(){
+function loadLocalDB(){
   try{
     const s = localStorage.getItem(LS_KEY);
-    if(!s){ setSaveStatus('idle','尚未有資料'); return false; }
+    if(!s) return false;
     const p = JSON.parse(s);
     if(p.DB) DB = p.DB;
     if(p.curMonth) curMonth = p.curMonth;
-    // Read meta for last save time
     try{
       const meta = JSON.parse(localStorage.getItem(LS_META_KEY)||'{}');
       _lastSaveTime = meta.lastSave || null;
     }catch{}
-    setSaveStatus('saved', timeAgo(_lastSaveTime));
     return true;
-  }catch(e){ console.warn('載入失敗', e); setSaveStatus('error','載入失敗'); return false; }
+  }catch(e){ console.warn('載入失敗', e); return false; }
+}
+function loadDB(){ return loadLocalDB(); }
+
+// ─── Dropbox API ─────────────────────────────────────────────────────────────
+// Test the token works (and what user it belongs to)
+async function dbxTestToken(token){
+  const r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+    method: 'POST',
+    headers: {Authorization: 'Bearer '+token}
+  });
+  if(!r.ok){
+    const txt = await r.text().catch(()=>'');
+    if(r.status === 401) throw new Error('Token 無效或已過期（HTTP 401）');
+    throw new Error('連線失敗 HTTP '+r.status+': '+txt.slice(0,150));
+  }
+  return await r.json();
 }
 
+async function dbxUpload(token, content){
+  const r = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer '+token,
+      'Content-Type': 'application/octet-stream',
+      'Dropbox-API-Arg': JSON.stringify({
+        path: DBX_PATH,
+        mode: 'overwrite',
+        autorename: false,
+        mute: true,
+        strict_conflict: false
+      })
+    },
+    body: content
+  });
+  if(!r.ok){
+    const txt = await r.text().catch(()=>'');
+    throw new Error('上傳失敗 HTTP '+r.status+': '+txt.slice(0,200));
+  }
+  const meta = await r.json();
+  _lastRemoteRev = meta.rev;
+  return meta;
+}
+
+async function dbxDownload(token){
+  const r = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer '+token,
+      'Dropbox-API-Arg': JSON.stringify({path: DBX_PATH})
+    }
+  });
+  if(r.status === 409){
+    // path not found = file doesn't exist yet
+    return null;
+  }
+  if(!r.ok){
+    const txt = await r.text().catch(()=>'');
+    throw new Error('下載失敗 HTTP '+r.status+': '+txt.slice(0,200));
+  }
+  const metaHdr = r.headers.get('dropbox-api-result');
+  if(metaHdr){ try{ _lastRemoteRev = JSON.parse(metaHdr).rev; }catch{} }
+  const text = await r.text();
+  return JSON.parse(text);
+}
+
+async function dbxGetMeta(token){
+  const r = await fetch('https://api.dropboxapi.com/2/files/get_metadata', {
+    method: 'POST',
+    headers: {Authorization: 'Bearer '+token, 'Content-Type': 'application/json'},
+    body: JSON.stringify({path: DBX_PATH})
+  });
+  if(r.status === 409) return null;
+  if(!r.ok) return null;
+  return await r.json();
+}
+
+// ─── Pull from cloud at startup or on poll ───────────────────────────────────
+async function pullFromCloud(showStatus=true){
+  const cfg = getSyncConfig();
+  if(!cfg) return false;
+  if(_isPulling) return false;
+  _isPulling = true;
+  if(showStatus) setSyncStatus('saving', '從雲端載入...');
+  try{
+    const remote = await dbxDownload(cfg.token);
+    if(!remote){
+      // File doesn't exist yet → push current data up
+      const payload = JSON.stringify({curMonth, DB, lastModified: Date.now()});
+      await dbxUpload(cfg.token, payload);
+      _lastSaveTime = Date.now();
+      try{ localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime})); }catch{}
+      setSyncStatus('cloud', '雲端已建立 · '+timeAgo(_lastSaveTime));
+      _isPulling = false;
+      return false;
+    }
+    const localMeta = JSON.parse(localStorage.getItem(LS_META_KEY)||'{}');
+    const localTime = localMeta.lastSave || 0;
+    const remoteTime = remote.lastModified || 0;
+    if(remoteTime > localTime){
+      if(remote.DB) DB = remote.DB;
+      if(remote.curMonth) curMonth = remote.curMonth;
+      _lastSaveTime = remoteTime;
+      try{
+        localStorage.setItem(LS_KEY, JSON.stringify({curMonth, DB, lastModified: remoteTime}));
+        localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: remoteTime}));
+      }catch{}
+      renderAll();
+      setSyncStatus('cloud', '已從雲端載入 · '+timeAgo(_lastSaveTime));
+      _isPulling = false;
+      return true;
+    } else if(localTime > remoteTime){
+      const payload = localStorage.getItem(LS_KEY);
+      if(payload) await dbxUpload(cfg.token, payload);
+      setSyncStatus('cloud', '已推送至雲端 · '+timeAgo(_lastSaveTime));
+      _isPulling = false;
+      return false;
+    } else {
+      setSyncStatus('cloud', '雲端 · '+timeAgo(_lastSaveTime));
+      _isPulling = false;
+      return false;
+    }
+  }catch(e){
+    console.warn('雲端拉取失敗', e);
+    setSyncStatus('offline', '離線（雲端讀取失敗）');
+    _isPulling = false;
+    return false;
+  }
+}
+
+// ─── Background poll every 30s ───────────────────────────────────────────────
+function startPolling(){
+  stopPolling();
+  _pollTimer = setInterval(async ()=>{
+    const cfg = getSyncConfig();
+    if(!cfg || _isPulling || _saveTimer) return;
+    try{
+      const meta = await dbxGetMeta(cfg.token);
+      if(!meta) return;
+      if(_lastRemoteRev && meta.rev !== _lastRemoteRev){
+        // remote changed from another device → pull
+        await pullFromCloud(false);
+      } else if(!_lastRemoteRev){
+        _lastRemoteRev = meta.rev;
+      }
+    }catch(e){ /* silent */ }
+  }, 30000);
+}
+function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
+
+// ─── Sync settings modal ─────────────────────────────────────────────────────
+function openSyncSettings(){
+  const cfg = getSyncConfig();
+  const panel = document.getElementById('syncStatusText');
+  const last = document.getElementById('syncLastSync');
+  const tokenIn = document.getElementById('tokenInput');
+  const discBtn = document.getElementById('disconnectBtn');
+  const connBtn = document.getElementById('connectBtn');
+  const guide = document.getElementById('setupGuide');
+  document.getElementById('syncError').style.display = 'none';
+  document.getElementById('syncOK').style.display = 'none';
+
+  if(cfg){
+    panel.innerHTML = '<span style="color:var(--green)">●</span> Dropbox 同步已啟用';
+    last.textContent = _lastSaveTime ? '最後同步：'+new Date(_lastSaveTime).toLocaleString('zh-TW') : '';
+    tokenIn.value = cfg.token;
+    discBtn.style.display = 'inline-block';
+    connBtn.textContent = '重新測試';
+    guide.open = false;
+  }else{
+    panel.innerHTML = '<span style="color:var(--t3)">○</span> 尚未啟用';
+    last.textContent = '';
+    tokenIn.value = '';
+    discBtn.style.display = 'none';
+    connBtn.textContent = '測試並啟用';
+    guide.open = true;
+  }
+  switchSyncTab('dropbox');
+  document.getElementById('syncModal').classList.add('open');
+}
+function closeSyncSettings(){
+  document.getElementById('syncModal').classList.remove('open');
+}
+
+function switchSyncTab(name){
+  document.querySelectorAll('.syncTab').forEach(t=>{
+    const on = t.dataset.tab === name;
+    t.style.borderBottomColor = on ? 'var(--accent)' : 'transparent';
+    t.style.color = on ? 'var(--accent)' : 'var(--t3)';
+  });
+  document.getElementById('tab-dropbox').style.display = name==='dropbox' ? 'block' : 'none';
+  document.getElementById('tab-url').style.display = name==='url' ? 'block' : 'none';
+}
+
+function togglePwd(){
+  const i = document.getElementById('tokenInput');
+  const b = document.getElementById('togglePwdBtn');
+  if(i.type==='password'){ i.type='text'; b.textContent='🙈 隱藏'; }
+  else { i.type='password'; b.textContent='👁 顯示'; }
+}
+
+async function testAndConnect(){
+  const tokenIn = document.getElementById('tokenInput');
+  const errBox = document.getElementById('syncError');
+  const okBox = document.getElementById('syncOK');
+  const connBtn = document.getElementById('connectBtn');
+  errBox.style.display = 'none';
+  okBox.style.display = 'none';
+  const token = tokenIn.value.trim();
+
+  if(!token){
+    errBox.innerHTML = '<strong>請貼上 Access Token</strong><br>從 Dropbox App Console 的「Generated access token」複製';
+    errBox.style.display = 'block';
+    return;
+  }
+  if(!token.startsWith('sl.') && !token.startsWith('sk.')){
+    errBox.innerHTML = '<strong>Token 格式不對</strong><br>Dropbox token 通常以 <code>sl.</code> 開頭，請確認複製完整';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  connBtn.disabled = true; connBtn.textContent = '測試中...';
+  try{
+    // Step 1: verify token by getting account info
+    const account = await dbxTestToken(token);
+
+    // Step 2: try to upload current data (or fetch existing)
+    const existing = await dbxDownload(token);
+    let action = '';
+    if(existing){
+      // File already on Dropbox → pull it (might overwrite local)
+      const localMeta = JSON.parse(localStorage.getItem(LS_META_KEY)||'{}');
+      const localTime = localMeta.lastSave || 0;
+      const remoteTime = existing.lastModified || 0;
+      if(remoteTime > localTime){
+        if(existing.DB) DB = existing.DB;
+        if(existing.curMonth) curMonth = existing.curMonth;
+        _lastSaveTime = remoteTime;
+        try{
+          localStorage.setItem(LS_KEY, JSON.stringify({curMonth, DB, lastModified: remoteTime}));
+          localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: remoteTime}));
+        }catch{}
+        renderAll();
+        action = '已從雲端載入既有資料';
+      } else {
+        // local is newer or equal → push local up
+        const payload = JSON.stringify({curMonth, DB, lastModified: Date.now()});
+        await dbxUpload(token, payload);
+        _lastSaveTime = Date.now();
+        try{ localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime})); }catch{}
+        action = '已將本機資料推送到雲端';
+      }
+    } else {
+      // No file yet → create one with current data
+      const payload = JSON.stringify({curMonth, DB, lastModified: Date.now()});
+      await dbxUpload(token, payload);
+      _lastSaveTime = Date.now();
+      try{ localStorage.setItem(LS_META_KEY, JSON.stringify({lastSave: _lastSaveTime})); }catch{}
+      action = '已建立雲端備份檔';
+    }
+
+    setSyncConfig({token});
+    startPolling();
+    setSyncStatus('cloud', '雲端 · '+timeAgo(_lastSaveTime));
+
+    okBox.innerHTML = '<strong>✅ 同步啟用成功！</strong><br>'
+      + '帳號：'+(account.email||account.name?.display_name||'(unknown)')+'<br>'
+      + action+'。<br>'
+      + '<br>📂 檔案位置：你的 Dropbox 內「應用程式 / '+(await dbxGetAppFolderName(token))+'/finance-tracker.json」<br>'
+      + '🔁 之後改資料 1.5 秒後會自動上傳，每 30 秒檢查雲端有沒有更新';
+    okBox.style.display = 'block';
+    connBtn.disabled = false; connBtn.textContent = '重新測試';
+    // Refresh modal status panel
+    document.getElementById('syncStatusText').innerHTML = '<span style="color:var(--green)">●</span> Dropbox 同步已啟用';
+    document.getElementById('syncLastSync').textContent = '最後同步：'+new Date(_lastSaveTime).toLocaleString('zh-TW');
+    document.getElementById('disconnectBtn').style.display = 'inline-block';
+  }catch(e){
+    console.error(e);
+    let hint = '';
+    if(/401/.test(e.message)){
+      hint = '<br><br>👉 <strong>解決方法</strong>：Token 失效了。回到 Dropbox App Console → OAuth 2 區塊 → 重新 Generate 一次新的 Token，再貼進來。<br>記得 Access token expiration 要選「No expiration」。';
+    } else if(/scope/i.test(e.message) || /403/.test(e.message)){
+      hint = '<br><br>👉 <strong>解決方法</strong>：權限不足。回到 App Console → Permissions 分頁 → 勾選 <code>files.content.write</code> 和 <code>files.content.read</code> → Submit → 然後重新 Generate Token。';
+    } else if(/Failed to fetch|NetworkError/i.test(e.message)){
+      hint = '<br><br>👉 <strong>解決方法</strong>：網路問題或瀏覽器阻擋。檢查網路連線；如果在無痕模式，試試一般模式。';
+    }
+    errBox.innerHTML = '<strong>❌ 啟用失敗</strong><br>'+e.message+hint;
+    errBox.style.display = 'block';
+    connBtn.disabled = false; connBtn.textContent = '測試並啟用';
+  }
+}
+
+async function dbxGetAppFolderName(token){
+  try{
+    const r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+      method:'POST', headers:{Authorization:'Bearer '+token}
+    });
+    const j = await r.json();
+    return j.team?.name?.display_name ? '應用程式資料夾' : '應用程式資料夾';
+  }catch{ return '(你建立的 App 資料夾)'; }
+}
+
+function disconnectSync(){
+  if(!confirm('確認中止同步？\n（本機資料保留，雲端檔案不會被刪除）\n\n下次啟用時貼回同一個 Token 即可恢復同步。')) return;
+  setSyncConfig(null);
+  stopPolling();
+  setSyncStatus('off');
+  closeSyncSettings();
+}
+
+// ─── URL share fallback ──────────────────────────────────────────────────────
+function generateShareUrl(){
+  try{
+    const payload = JSON.stringify({curMonth, DB, lastModified: Date.now()});
+    // base64-encode to make URL-safe
+    const b64 = btoa(unescape(encodeURIComponent(payload)));
+    const base = location.href.split('#')[0].split('?')[0];
+    const url = base + '#import=' + b64;
+    const box = document.getElementById('shareUrlBox');
+    box.value = url;
+    box.style.display = 'block';
+    navigator.clipboard.writeText(url).then(()=>{
+      alert('✅ 連結已複製到剪貼簿！\n\n資料大小：'+(b64.length/1024).toFixed(1)+' KB\n\n把這串連結傳到另一台裝置打開即可匯入。');
+    }).catch(()=>{
+      alert('連結已產生在下方框框內，請手動複製。');
+    });
+  }catch(e){
+    alert('產生連結失敗：'+e.message);
+  }
+}
+
+function checkUrlImport(){
+  const hash = location.hash;
+  if(!hash.startsWith('#import=')) return false;
+  const b64 = hash.slice(8);
+  try{
+    const payload = decodeURIComponent(escape(atob(b64)));
+    const d = JSON.parse(payload);
+    if(!confirm('🔗 偵測到分享連結中的資料\n\n要匯入嗎？目前的本機資料會被備份後覆蓋。')){
+      history.replaceState(null, '', location.pathname);
+      return false;
+    }
+    try{ const cur = localStorage.getItem(LS_KEY); if(cur) localStorage.setItem(LS_BACKUP_KEY, cur); }catch{}
+    if(d.DB) DB = d.DB;
+    if(d.curMonth) curMonth = d.curMonth;
+    saveDB();
+    history.replaceState(null, '', location.pathname);
+    alert('✅ 匯入成功！\n（原本的資料已備份，可按「↺ 還原匯入前備份」復原）');
+    return true;
+  }catch(e){
+    alert('❌ 連結資料無效：'+e.message);
+    return false;
+  }
+}
+
+// ─── Reset / backup ──────────────────────────────────────────────────────────
 function resetDB(){
-  if(!confirm('確認清除所有資料？將回復為預設範例資料，無法復原。\n（建議先按「⬇ 匯出資料」備份）')) return;
-  // Backup before reset just in case
+  const cfg = getSyncConfig();
+  const extra = cfg ? '\n\n⚠️ 雲端 Dropbox 上的檔案也會被覆蓋成預設值！' : '';
+  if(!confirm('確認清除所有資料？將回復為預設範例資料，無法復原。\n（建議先按「⬇ 匯出資料」備份）'+extra)) return;
   try{ const cur = localStorage.getItem(LS_KEY); if(cur) localStorage.setItem(LS_BACKUP_KEY, cur); }catch{}
   localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(LS_META_KEY);
   location.reload();
 }
 
 function restoreBackup(){
   const b = localStorage.getItem(LS_BACKUP_KEY);
   if(!b){ alert('沒有可用的備份。\n（每次按「匯入」或「清除資料」前會自動備份一份）'); return; }
-  if(!confirm('確認還原到上次「匯入前」的備份？目前資料將被覆蓋。')) return;
+  if(!confirm('確認還原到上次「匯入前」的備份？目前資料將被覆蓋（包含雲端）。')) return;
   try{
     const p = JSON.parse(b);
     if(p.DB) DB = p.DB;
@@ -919,10 +1385,15 @@ function restoreBackup(){
   }catch(e){ alert('❌ 備份檔損毀，無法還原'); }
 }
 
-// Periodically refresh the "X minutes ago" text
-setInterval(()=>{ if(_lastSaveTime) setSaveStatus('saved', timeAgo(_lastSaveTime)); }, 30000);
+// Refresh "X minutes ago" label every 20s
+setInterval(()=>{
+  if(!_lastSaveTime) return;
+  const cfg = getSyncConfig();
+  if(_saveTimer) return;
+  setSyncStatus(cfg?'cloud':'saved', (cfg?'雲端 · ':'已儲存 · ')+timeAgo(_lastSaveTime));
+}, 20000);
 
-// Last-chance save before page unload (in case debounce timer hasn't fired)
+// Last-chance save before page unload
 window.addEventListener('beforeunload', ()=>{
   if(_saveTimer){ clearTimeout(_saveTimer); _doSave(); }
 });
@@ -953,25 +1424,43 @@ function importData(e){
   r.onload=ev=>{
     try{
       const d=JSON.parse(ev.target.result);
-      // Backup current data before overwriting
       try{ const cur = localStorage.getItem(LS_KEY); if(cur) localStorage.setItem(LS_BACKUP_KEY, cur); }catch{}
       if(d.DB)DB=d.DB; else DB={months:d};
       if(d.curMonth)curMonth=d.curMonth;
       saveDB();
-      renderAll();alert('✅ 匯入成功！\n（原本的資料已備份，可按「↺ 還原匯入前備份」復原）');
+      renderAll();
+      alert('✅ 匯入成功！\n（原本的資料已備份，可按「↺ 還原匯入前備份」復原）');
     }catch{alert('❌ 匯入失敗');}
-    // Reset input so importing the same file again will fire onchange
     e.target.value = '';
   };
   r.readAsText(f);
 }
 
 // ═══════════════════════════════ INIT ═══════════════════════════════
-const _hadData = loadDB();
-renderAll();
-// If no data was loaded (first visit), persist the default sample data immediately
-// so the user gets a consistent state on next load.
-if(!_hadData){ _doSave(); }
+(async function init(){
+  const hadLocal = loadLocalDB();
+  renderAll();
+
+  // 1. Check for #import= URL hash (fallback share-link)
+  if(location.hash.startsWith('#import=')){
+    checkUrlImport();
+    return;
+  }
+
+  // 2. Check for cloud sync config
+  const cfg = getSyncConfig();
+  if(cfg){
+    await pullFromCloud();
+    startPolling();
+  } else {
+    if(hadLocal){
+      setSyncStatus('saved', '已儲存 · '+timeAgo(_lastSaveTime));
+    } else {
+      setSyncStatus('off');
+      _doSave();
+    }
+  }
+})();
 </script>
 </body>
 </html>
